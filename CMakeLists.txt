@@ -20,6 +20,7 @@ add_custom_command(
   COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tools/ppu_static_recomp.py" "${PPU_DEMO_ELF}" "${PPU_DEMO_CPP}"
   DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/tools/ppu_homebrew.py"
           "${CMAKE_CURRENT_SOURCE_DIR}/tools/ppu_static_recomp.py"
+          "${CMAKE_CURRENT_SOURCE_DIR}/tools/ppu_elf_layout.py"
   VERBATIM
 )
 # Exercise out-of-range and unaligned memory traps in *native MSVC executables*.
@@ -58,6 +59,9 @@ set_tests_properties(native_ppu_guest_big_endian PROPERTIES
 add_test(NAME native_ppu_nested_stack COMMAND LumavunPPUHomebrewPort)
 set_tests_properties(native_ppu_nested_stack PROPERTIES
   PASS_REGULAR_EXPRESSION "PPU_STACK_RESTORED=1")
+add_test(NAME native_ppu_elf_relative COMMAND LumavunPPUHomebrewPort)
+set_tests_properties(native_ppu_elf_relative PROPERTIES
+  PASS_REGULAR_EXPRESSION "PPU_ELF_RELOCATED=1")
 add_test(NAME ppu_recomp_python_tests
   COMMAND "${Python3_EXECUTABLE}" -m unittest discover
           -s "${CMAKE_CURRENT_SOURCE_DIR}/tests" -p "test_ppu_recomp.py" -v)
@@ -67,6 +71,9 @@ add_test(NAME ppu_memory_python_tests
 add_test(NAME ppu_stack_python_tests
   COMMAND "${Python3_EXECUTABLE}" -m unittest discover
           -s "${CMAKE_CURRENT_SOURCE_DIR}/tests" -p "test_ppu_stack.py" -v)
+add_test(NAME ppu_elf_segment_tests
+  COMMAND "${Python3_EXECUTABLE}" -m unittest discover
+          -s "${CMAKE_CURRENT_SOURCE_DIR}/tests" -p "test_ppu_elf_segments.py" -v)
 
 set(PS1_DEMO_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated")
 set(PS1_DEMO_INPUT "${PS1_DEMO_DIR}/PS1_MINIGAME.EXE")
