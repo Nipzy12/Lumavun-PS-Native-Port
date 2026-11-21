@@ -87,7 +87,22 @@ int main(int argc,char**argv) {
     goto L_ENTRY;
 """
 
-def generate_native_cpp(code:Code)->str:
+WIN32_RUNTIME=r"""#define UNICODE
+#define _UNICODE
+#include <windows.h>
+#include <cstdint>
+#include <cwchar>
+#include "native_game_win.hpp"
+// This is the SAME PS-X EXE translated to native host code, with a Win32 syscall bridge.
+// No MIPS decoding occurs in the generated executable.
+int WINAPI wWinMain(HINSTANCE app, HINSTANCE, LPWSTR args, int show) {
+    const bool selfTest=args && std::wcsstr(args,L"--self-test")!=nullptr;
+    if(!lv_demo::initialize(app,show,selfTest))return 6;
+    uint32_t r[32]={};
+    goto L_ENTRY;
+"""
+
+def generate_native_cpp(code:Code,target:str='console')->str:
     words=code.words
     entry=(code.entry-code.load_address)//4
     delay_indices=set()
@@ -108,7 +123,10 @@ def generate_native_cpp(code:Code)->str:
             fmt_instruction(word)  # validate full image, fail closed
     if entry in delay_indices or any(t in delay_indices for t in jumps.values()):
         raise RecompError('Cannot jump into delay slot')
-    lines=[RUNTIME.replace('L_ENTRY',f'L_{entry}')]
+    if target not in ('console','win32'):
+        raise RecompError('Unknown native runtime target')
+    template=RUNTIME if target=='console' else WIN32_RUNTIME
+    lines=[template.replace('L_ENTRY',f'L_{entry}')]
     for i,word in enumerate(words):
         if i in delay_indices:continue
         lines.append(f'L_{i}: {{')
@@ -124,8 +142,8 @@ def generate_native_cpp(code:Code)->str:
     lines.append('}\n')
     return '\n'.join(lines)
 
-def recompile_file(input_path:Path,output_path:Path):
-    cpp=generate_native_cpp(read_psx_exe(input_path))
+def recompile_file(input_path:Path,output_path:Path,target:str='console'):
+    cpp=generate_native_cpp(read_psx_exe(input_path),target)
     Path(output_path).parent.mkdir(parents=True,exist_ok=True)
     Path(output_path).write_text(cpp,encoding='utf-8')
 
@@ -133,7 +151,8 @@ if __name__=='__main__':
     p=argparse.ArgumentParser(description='Demo-only PS-X EXE to native C++ translator')
     p.add_argument('input',type=Path)
     p.add_argument('output',type=Path)
+    p.add_argument('--gui',action='store_true',help='Use the native Win32 GDI homebrew runtime')
     args=p.parse_args()
-    try:recompile_file(args.input,args.output)
+    try:recompile_file(args.input,args.output,'win32' if args.gui else 'console')
     except (OSError,RecompError) as exc:p.error(str(exc))
     print('Generated native C++ source:',args.output)
