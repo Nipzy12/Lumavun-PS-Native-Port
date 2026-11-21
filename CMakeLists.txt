@@ -22,6 +22,33 @@ add_custom_command(
           "${CMAKE_CURRENT_SOURCE_DIR}/tools/ppu_static_recomp.py"
   VERBATIM
 )
+# Exercise out-of-range and unaligned memory traps in *native MSVC executables*.
+# Exact exit status is checked by Python so arbitrary crashes do not count as a pass.
+foreach(variant IN ITEMS unmapped unaligned)
+  if(variant STREQUAL "unmapped")
+    set(PPU_TRAP_ADDRESS 0x1000)
+  else()
+    set(PPU_TRAP_ADDRESS 0x2002)
+  endif()
+  set(PPU_TRAP_CPP "${PPU_DEMO_DIR}/PPUGuestTrap_${variant}.cpp")
+  set(PPU_TRAP_ELF "${PPU_DEMO_DIR}/PPUGuestTrap_${variant}.ELF")
+  add_custom_command(
+    OUTPUT "${PPU_TRAP_CPP}"
+    BYPRODUCTS "${PPU_TRAP_ELF}"
+    COMMAND "${CMAKE_COMMAND}" -E make_directory "${PPU_DEMO_DIR}"
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tools/ppu_homebrew.py"
+            "${PPU_TRAP_ELF}" --guest-pointer "${PPU_TRAP_ADDRESS}"
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tools/ppu_static_recomp.py"
+            "${PPU_TRAP_ELF}" "${PPU_TRAP_CPP}"
+    DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/tools/ppu_homebrew.py"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tools/ppu_static_recomp.py"
+    VERBATIM
+  )
+  add_executable("LumavunPPUGuestTrap_${variant}" "${PPU_TRAP_CPP}")
+  add_test(NAME "native_ppu_memory_guard_${variant}"
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_native_exit.py"
+            12 "$<TARGET_FILE:LumavunPPUGuestTrap_${variant}>")
+endforeach()
 add_executable(LumavunPPUHomebrewPort "${PPU_DEMO_CPP}")
 add_test(NAME native_ppu_homebrew COMMAND LumavunPPUHomebrewPort)
 set_tests_properties(native_ppu_homebrew PROPERTIES PASS_REGULAR_EXPRESSION "PPU_HOMEBREW_RESULT=15")
