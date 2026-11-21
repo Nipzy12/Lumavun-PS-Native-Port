@@ -14,6 +14,19 @@ def addi(rd, ra, imm):
     return (14 << 26) | (rd << 21) | (ra << 16) | (imm & 0xFFFF)
 
 
+def addis(rd, ra, imm):
+    # PowerPC ADDIS (also LIS when RA=0). Signed immediate shifted by 16.
+    return (15 << 26) | (rd << 21) | (ra << 16) | (imm & 0xffff)
+
+
+def ori(rd, ra, imm):
+    return (24 << 26) | (rd << 21) | (ra << 16) | (imm & 0xffff)
+
+
+def xori(rd, ra, imm):
+    return (26 << 26) | (rd << 21) | (ra << 16) | (imm & 0xffff)
+
+
 def add(rd, ra, rb):
     return (31 << 26) | (rd << 21) | (ra << 16) | (rb << 11) | (266 << 1)
 
@@ -95,7 +108,12 @@ def words(guest_pointer=0x2000):
         memory_op(58, 17, 16, 0), # 32: ld back via relocated pointer
         memory_op(34, 18, 15, 8), # 33: initialized .data byte 0xab
         memory_op(34, 19, 15, 32),# 34: zero-filled BSS byte
-        0x4E800020,               # 35: blr to worker
+        addis(20, 0, 0x1234),    # 35: 0x12340000 (LIS)
+        ori(20, 20, 0x5678),     # 36: 0x12345678
+        xori(21, 20, 0x5678),    # 37: 0x12340000
+        memory_op(36, 20, 16, 24), # 38: stw immediate result into mapped scratch
+        memory_op(32, 22, 16, 24), # 39: lwz round-trip from scratch
+        0x4E800020,               # 40: blr to worker
     ]
 
 
