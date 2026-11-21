@@ -28,3 +28,8 @@ This repository does not contain copyrighted games, keys or firmware.
 
 ## V0.2 Game inspection
 The launcher includes **Import Game File**, **Import Game Folder**, and **Save Report**. The separate `lumavun_inspect` command analyzes simple PS1/PS2/PS3 executable signatures and game folder structures. It does not run a native recompiler or create playable ports. ISO and package parsing are not implemented. Gundam Reborn is not yet ported.
+
+## V0.3: ISO9660 candidate detection (in progress)
+The import analyzer now inspects ISO9660 Primary Volume Descriptors and bounded root-directory metadata from 2048-byte data-sector images and raw 2352-byte Mode1 images. It identifies PS1/PS2 candidates using SYSTEM.CNF (BOOT/BOOT2) and PS3 candidates using PS3_GAME. It does **not** decrypt, emulate, recompile, or port these images. Unsupported ISO variants remain ambiguous. Disc scanning reads at most 1 MiB of directory records and small metadata buffers, avoiding loading a full game image into RAM.
+
+See [staged roadmap](docs/ROADMAP.md) for acceptance criteria, known blockers, and next work.
