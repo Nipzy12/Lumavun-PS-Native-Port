@@ -60,6 +60,7 @@ class NestedPPUCallTests(unittest.TestCase):
             "PPU_HOMEBREW_RESULT=15",
             "PPU_GUEST_BE_BYTES=18,52",
             "PPU_STACK_RESTORED=1",
+            "PPU_ELF_RELOCATED=1",
         ])
 
     def test_stdu_rejects_invalid_base_register(self):

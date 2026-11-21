@@ -86,3 +86,7 @@ verifies its two frames and LR were restored by printing `PPU_STACK_RESTORED=1`.
 Out-of-bounds/misaligned guest stacks return exit code 12. The generic game
 port command is still blocked; this is not PS3 CellOS, ELF relocations or
 Gundam Reborn. [Technical notes](docs/V0.8.3-PPU-STACK.md).
+
+## V0.8.4: multi-segment PPC64 ELF and bounded RELA relocation
+
+Our self-authored PPC64 homebrew ELF now has separate executable and initialized RW data/BSS PT_LOAD segments. A checked `R_PPC64_RELATIVE` (type 22) relocation patches a guest pointer before the statically translated instructions run. The native output adds `PPU_ELF_RELOCATED=1` only after verifying relocated data, an initialized byte, and zero-filled BSS. Malformed sections and unsupported relocations fail closed. This is **not** dynamic linking, a full PS3 memory loader or a Gundam Reborn port. See [V0.8.4 technical guide](docs/V0.8.4-ELF-RELOCATIONS.md).

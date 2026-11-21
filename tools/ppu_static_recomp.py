@@ -7,6 +7,8 @@ import argparse
 from pathlib import Path
 import struct
 
+from ppu_elf_layout import ElfLayoutError, parse_ppu_image
+
 
 class RecompError(ValueError):
     pass
@@ -31,26 +33,10 @@ def branch_target(word, pc, conditional):
 
 
 def load_ppu_elf(path):
-    binary = Path(path).read_bytes()
-    if len(binary) > 1024 * 1024:
-        raise RecompError('Prototype ELF input exceeds 1 MiB safety limit')
-    if len(binary) < 120 or binary[:7] != b'\x7fELF\x02\x02\x01':
-        raise RecompError('Requires plain ELF64 big-endian PowerPC (not SELF)')
-    fields = struct.unpack_from('>HHIQQQIHHHHHH', binary, 16)
-    elf_type, machine, version, entry, phoff, _, flags, ehsize, phsize, phcount, _, _, _ = fields
-    if elf_type != 2 or machine != 21 or version != 1 or ehsize != 64 or phsize != 56 or phcount != 1:
-        raise RecompError('Unsupported ELF64 PPU header or multiple program headers')
-    if phoff < 64 or phoff > len(binary) - 56:
-        raise RecompError('Program header out of bounds')
-    ptype, pflags, offset, vaddr, _, filesz, memsz, align = struct.unpack_from('>IIQQQQQQ', binary, phoff)
-    if ptype != 1 or pflags & 1 == 0 or not (0 < filesz <= 4096) or filesz != memsz:
-        raise RecompError('Expected a tiny executable PT_LOAD section without BSS')
-    if offset > len(binary) or filesz > len(binary) - offset or filesz % 4 or vaddr % 4:
-        raise RecompError('Invalid executable segment alignment or bounds')
-    if not vaddr <= entry < vaddr + filesz or (entry - vaddr) % 4:
-        raise RecompError('Entry address is outside executable segment')
-    code = binary[offset:offset + filesz]
-    return vaddr, (entry - vaddr) // 4, struct.unpack('>' + 'I' * (len(code) // 4), code)
+    try:
+        return parse_ppu_image(path)
+    except ElfLayoutError as error:
+        raise RecompError(str(error)) from error
 
 
 def classify(word, pc, base, count):
@@ -146,7 +132,8 @@ static bool guest_store(GuestRam& memory, uint64_t address,
 
 
 def generate(input_path):
-    base, entry, words = load_ppu_elf(input_path)
+    image = load_ppu_elf(input_path)
+    base, entry, words = image.code_base, image.entry_index, image.words
     decoded = []
     returns = []
     for index, word in enumerate(words):
@@ -165,8 +152,20 @@ def generate(input_path):
         'int main() {', '  GuestRam memory{};', '  uint64_t r[32] = {};',
         '  r[1] = UINT64_C(0x7000); // demo-specific initial PPC stack pointer',
         '  uint64_t lr = 0;', '  bool eq = false;', '  uint64_t steps = 0;',
-        f'  goto L_{entry};',
     ]
+    # All ELF data segments are validated as mapped to the fictional sandbox.
+    # Filesz bytes are initialized; the remaining memsz-filesz bytes stay zero.
+    for data_segment in image.data_segments:
+        offset = data_segment.virtual_address - 0x2000
+        for i, byte in enumerate(data_segment.contents):
+            out.append(f'  memory[{offset+i}] = static_cast<uint8_t>({byte});')
+    # ET_EXEC with B=0 only: R_PPC64_RELATIVE = B + addend.
+    # Apply the relocation BEFORE jumping into translated PowerPC instructions.
+    for relocation in image.relocations:
+        out.append(
+            f'  if (!guest_store(memory, UINT64_C({relocation.virtual_address}), '
+            f'8, UINT64_C({relocation.value}))) return 12;')
+    out.append(f'  goto L_{entry};')
     for index, (kind, arg) in enumerate(decoded):
         out.append(f'L_{index}: {{')
         out.append('  if (++steps > UINT64_C(1000000)) return 10;')
@@ -190,7 +189,8 @@ def generate(input_path):
             out.append('  std::cout << "PPU_HOMEBREW_RESULT=" << r[3] << "\\n";')
             out.append('  std::cout << "PPU_GUEST_BE_BYTES=" << r[10] << "," << r[11] << "\\n";')
             out.append(f'  std::cout << "PPU_STACK_RESTORED=" << (r[1] == UINT64_C(0x7000) && lr == UINT64_C({base + 12})) << "\\n";')
-            out.append(f'  return (r[3]==15 && r[6]==15 && r[7]==15 && r[10]==18 && r[11]==52 && r[1] == UINT64_C(0x7000) && lr == UINT64_C({base + 12})) ? 0 : 7;')
+            out.append('  std::cout << "PPU_ELF_RELOCATED=" << (r[16] == UINT64_C(0x2000) && r[17] == UINT64_C(15) && r[18] == UINT64_C(171) && r[19] == UINT64_C(0)) << "\\n";')
+            out.append(f'  return (r[3]==15 && r[6]==15 && r[7]==15 && r[10]==18 && r[11]==52 && r[1] == UINT64_C(0x7000) && lr == UINT64_C({base + 12}) && r[16] == UINT64_C(0x2000) && r[17] == UINT64_C(15) && r[18] == UINT64_C(171) && r[19] == UINT64_C(0)) ? 0 : 7;')
         out.append('}')
     out.append('}')
     return '\n'.join(out) + '\n'
