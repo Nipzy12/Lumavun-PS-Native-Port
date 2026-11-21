@@ -11,7 +11,7 @@ This file is the source of truth for staged development. Every stage must includ
 | V0.5 | First reproducible *actual* native recompilation on authorized small PS1 code/game | Original PS-X EXE MIPS mini-game translated into Windows native C++, gameplay self-test | Done: self-authored demo only; commercial games unsupported |
 | V0.6 | PS2 and PS3 backend feasibility | ELF32 MIPS, ELF64 PPU, SPU ELF and SELF structure validation | Partial: header inspector; game-specific function inventory still blocked |
 | V0.7 | Native runtime replacement | 2D Win32 GDI + keyboard + save/sound demo on statically translated PS1 homebrew | Partial: original demo only; PS2/PS3 runtimes unavailable |
-| V0.8 | Gundam Reborn vertical slice | Native menu + one playable battle scenario, no emulator | Research target, no guarantee of feasibility |
+| V0.8 | Gundam Reborn vertical slice | Native menu + one playable battle scenario, no emulator | Preflight started: generic PPU ELF branch inventory; Gundam Reborn not analyzed or playable |
 | V0.9 | Low-spec optimization | Actual measured FPS, 1% low, memory use and stutter on AMD A4/Radeon R3/4 GB | Blocked: playable game |
 | V1.0 | Verified game-port release | Game boots, plays, saves/loads, audio/input and regression tests pass | Blocked: all preceding gates |
 
@@ -40,3 +40,7 @@ This phase adds a bounded read-only ELF/SELF structure analyzer and machine-read
 ## V0.7 homebrew host milestone
 
 The PS1 demo has a lightweight Win32 GDI graphical host, keyboard controls, user save file with integrity checks, and a Windows system-sound event. It is compiled from the same MIPS-I PS-X EXE as the V0.5 console port. This is NOT a PlayStation hardware graphics/audio runtime, a PS3 renderer, or Gundam Reborn gameplay. See [V0.7 runtime guide](V0.7-NATIVE-RUNTIME.md).
+
+## V0.8 preflight: read-only PPC64 code inventory
+
+The project can now scan a bounded amount of PS3-candidate PPU ELF executable bytes and report branch counts and candidate direct call targets. This is a **static heuristic**, not verified functions, decrypted EBOOT, recompiled PS3 code or playable Gundam Reborn. See [V0.8 PPU inventory](V0.8-PPU-INVENTORY.md). The original V0.8 gameplay acceptance gate remains open.

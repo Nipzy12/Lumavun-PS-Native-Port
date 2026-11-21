@@ -65,3 +65,7 @@ After Import Game, click **Analyze PS2/PS3 ELF or SELF**, or use `lumavun_probe.
 ## V0.7 native Win32 graphical host (homebrew only)
 
 The same original PS1 MIPS-I demo now compiles into a lightweight native windowed program: **LumavunPS1MiniPortGui.exe**. Click **Play Recompiled PS1 Graphical Demo** in the launcher. A/D (or arrows) move, Space stays, F5 saves, F9 loads, Escape exits. Uses GDI and Windows keyboard events; no emulator. Limited homebrew demo only, **not** a renderer for PS3 or playable Gundam Reborn. [Technical details](docs/V0.7-NATIVE-RUNTIME.md).
+
+## V0.8 preflight: PS3 PPU executable analysis
+
+Use `lumavun_ppu_scan.exe <plaintext-PPU-ELF> --report ppu.json` or **Analyze PS3 PPU Code (Read Only)** in the launcher. This tool scans executable PPC64 code in small chunks, counts branch instructions and returns bounded samples of candidate call targets. It rejects ELF-less SELF containers, does not decrypt, and never generates a game executable. [Limitations and test criteria](docs/V0.8-PPU-INVENTORY.md). Gundam Reborn is not yet analyzed or ported.
