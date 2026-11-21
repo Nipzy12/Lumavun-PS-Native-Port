@@ -226,10 +226,10 @@ void analyzeConsoleBinary(){
 }
 
 void launchPs1Demo(){
-  const auto path=exeFolder()/L"LumavunPS1MiniPort.exe";
+  const auto path=exeFolder()/L"LumavunPS1MiniPortGui.exe";
   std::error_code ec;
   if(!fs::is_regular_file(path,ec) || ec){
-    MessageBoxW(root,L"PS1 homebrew demo EXE not found in launcher folder.",
+    MessageBoxW(root,L"Native PS1 graphical demo missing. Download the complete V0.7 artifact.",
                 L"LUMAVUN",MB_OK|MB_ICONWARNING);
     return;
   }
@@ -239,7 +239,7 @@ void launchPs1Demo(){
   STARTUPINFOW si{};si.cb=sizeof(si);
   PROCESS_INFORMATION pi{};
   auto cwd=path.parent_path().wstring();
-  if(!CreateProcessW(path.c_str(),args.data(),nullptr,nullptr,FALSE,CREATE_NEW_CONSOLE,
+  if(!CreateProcessW(path.c_str(),args.data(),nullptr,nullptr,FALSE,0,
                      nullptr,cwd.c_str(),&si,&pi)){
     MessageBoxW(root,L"Could not start native PS1 homebrew mini-game.",
                 L"LUMAVUN",MB_OK|MB_ICONERROR);
@@ -252,7 +252,7 @@ void launchPs1Demo(){
 LRESULT CALLBACK wndProc(HWND h,UINT message,WPARAM w,LPARAM l){
   if(message==WM_CREATE){
     root=h;
-    control(L"STATIC",L"LUMAVUN PS Native | Binary Feasibility v0.6",0,24,18,620,30);
+    control(L"STATIC",L"LUMAVUN PS Native | Win32 Homebrew Runtime v0.7",0,24,18,620,30);
     info=control(L"STATIC",L"Detecting...",0,24,56,645,78);
     label=control(L"STATIC",L"",0,24,145,630,28);
     control(L"STATIC",L"Resolution",0,24,210,230,22);
@@ -272,7 +272,7 @@ LRESULT CALLBACK wndProc(HWND h,UINT message,WPARAM w,LPARAM l){
     control(L"BUTTON",L"Import Game Folder",WS_TABSTOP,235,555,190,38,BTN_FOLDER);
     control(L"BUTTON",L"Save Report",WS_TABSTOP,445,555,190,38,BTN_REPORT);
     importInfo=control(L"STATIC",L"No game imported. Real-game recompilation is not available.",0,24,610,670,55);
-    control(L"BUTTON",L"Play Native PS1 Homebrew Demo",WS_TABSTOP,24,678,400,36,BTN_DEMO);
+    control(L"BUTTON",L"Play Recompiled PS1 Graphical Demo",WS_TABSTOP,24,678,400,36,BTN_DEMO);
     control(L"BUTTON",L"Analyze PS2/PS3 ELF or SELF",WS_TABSTOP,24,725,400,36,BTN_FEASIBILITY);
     refresh();return 0;
   }
