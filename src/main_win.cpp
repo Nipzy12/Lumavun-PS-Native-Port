@@ -13,7 +13,7 @@
 #include <shlobj.h>
 namespace fs=std::filesystem;
 namespace {
-constexpr int BTN_SCAN=101, BTN_SAVE=102, BTN_PLAY=103, BTN_FILE=104, BTN_FOLDER=105, BTN_REPORT=106;
+constexpr int BTN_SCAN=101, BTN_SAVE=102, BTN_PLAY=103, BTN_FILE=104, BTN_FOLDER=105, BTN_REPORT=106, BTN_DEMO=107;
 HWND root=nullptr,info=nullptr,label=nullptr,status=nullptr,playBtn=nullptr;
 HWND resolution=nullptr,scale=nullptr,fps=nullptr,fullscreen=nullptr,importInfo=nullptr;
 lumavun::Inspection imported;bool hasImport=false;
@@ -198,10 +198,34 @@ void saveImport(){
     L"Report save failed.",L"LUMAVUN",MB_OK);
 }
 
+void launchPs1Demo(){
+  const auto path=exeFolder()/L"LumavunPS1MiniPort.exe";
+  std::error_code ec;
+  if(!fs::is_regular_file(path,ec) || ec){
+    MessageBoxW(root,L"PS1 homebrew demo EXE not found in launcher folder.",
+                L"LUMAVUN",MB_OK|MB_ICONWARNING);
+    return;
+  }
+  std::wstring command=L"\""+path.wstring()+L"\"";
+  std::vector<wchar_t> args(command.begin(),command.end());
+  args.push_back(L'\0');
+  STARTUPINFOW si{};si.cb=sizeof(si);
+  PROCESS_INFORMATION pi{};
+  auto cwd=path.parent_path().wstring();
+  if(!CreateProcessW(path.c_str(),args.data(),nullptr,nullptr,FALSE,CREATE_NEW_CONSOLE,
+                     nullptr,cwd.c_str(),&si,&pi)){
+    MessageBoxW(root,L"Could not start native PS1 homebrew mini-game.",
+                L"LUMAVUN",MB_OK|MB_ICONERROR);
+    return;
+  }
+  CloseHandle(pi.hThread);
+  CloseHandle(pi.hProcess);
+}
+
 LRESULT CALLBACK wndProc(HWND h,UINT message,WPARAM w,LPARAM l){
   if(message==WM_CREATE){
     root=h;
-    control(L"STATIC",L"LUMAVUN PS Native | Hardware-aware Launcher v0.1",0,24,18,620,30);
+    control(L"STATIC",L"LUMAVUN PS Native | Homebrew Recompiler Demo v0.5",0,24,18,620,30);
     info=control(L"STATIC",L"Detecting...",0,24,56,645,78);
     label=control(L"STATIC",L"",0,24,145,630,28);
     control(L"STATIC",L"Resolution",0,24,210,230,22);
@@ -220,7 +244,8 @@ LRESULT CALLBACK wndProc(HWND h,UINT message,WPARAM w,LPARAM l){
     control(L"BUTTON",L"Import Game File",WS_TABSTOP,24,555,190,38,BTN_FILE);
     control(L"BUTTON",L"Import Game Folder",WS_TABSTOP,235,555,190,38,BTN_FOLDER);
     control(L"BUTTON",L"Save Report",WS_TABSTOP,445,555,190,38,BTN_REPORT);
-    importInfo=control(L"STATIC",L"No game imported. Native recompilation is not yet implemented.",0,24,610,670,55);
+    importInfo=control(L"STATIC",L"No game imported. Real-game recompilation is not available.",0,24,610,670,55);
+    control(L"BUTTON",L"Play Native PS1 Homebrew Demo",WS_TABSTOP,24,678,400,36,BTN_DEMO);
     refresh();return 0;
   }
   if(message==WM_COMMAND){
@@ -233,6 +258,7 @@ LRESULT CALLBACK wndProc(HWND h,UINT message,WPARAM w,LPARAM l){
       case BTN_FILE:importFile();return 0;
       case BTN_FOLDER:importFolder();return 0;
       case BTN_REPORT:saveImport();return 0;
+      case BTN_DEMO:launchPs1Demo();return 0;
     }
   }
   if(message==WM_DESTROY){PostQuitMessage(0);return 0;}
@@ -246,7 +272,7 @@ int WINAPI wWinMain(HINSTANCE instance,HINSTANCE,LPWSTR,int show){
   wc.hCursor=LoadCursorW(nullptr,IDC_ARROW);
   if(!RegisterClassW(&wc))return 1;
   HWND h=CreateWindowW(wc.lpszClassName,L"LUMAVUN PS Native Port",WS_OVERLAPPEDWINDOW,
-    CW_USEDEFAULT,CW_USEDEFAULT,710,725,nullptr,nullptr,instance,nullptr);
+    CW_USEDEFAULT,CW_USEDEFAULT,710,790,nullptr,nullptr,instance,nullptr);
   if(!h)return 2;
   ShowWindow(h,show);UpdateWindow(h);
   MSG msg{};while(GetMessageW(&msg,nullptr,0,0)>0){TranslateMessage(&msg);DispatchMessageW(&msg);}

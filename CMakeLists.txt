@@ -3,6 +3,31 @@ project(LumavunPSNative LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 enable_testing()
+
+# V0.5: self-authored PS-X EXE -> statically translated native Windows executable.
+# Strictly limited MIPS-I demo subset, NOT a universal PS1 game port.
+find_package(Python3 COMPONENTS Interpreter REQUIRED)
+set(PS1_DEMO_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated")
+set(PS1_DEMO_INPUT "${PS1_DEMO_DIR}/PS1_MINIGAME.EXE")
+set(PS1_DEMO_CPP "${PS1_DEMO_DIR}/LumavunPS1MiniPort.cpp")
+add_custom_command(
+  OUTPUT "${PS1_DEMO_CPP}"
+  BYPRODUCTS "${PS1_DEMO_INPUT}"
+  COMMAND "${CMAKE_COMMAND}" -E make_directory "${PS1_DEMO_DIR}"
+  COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tools/make_demo_ps1.py" "${PS1_DEMO_INPUT}"
+  COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tools/ps1_static_recomp.py" "${PS1_DEMO_INPUT}" "${PS1_DEMO_CPP}"
+  DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/tools/make_demo_ps1.py"
+          "${CMAKE_CURRENT_SOURCE_DIR}/tools/ps1_static_recomp.py"
+  VERBATIM
+)
+add_executable(LumavunPS1MiniPort "${PS1_DEMO_CPP}")
+add_test(NAME native_ps1_minigame COMMAND LumavunPS1MiniPort --self-test)
+set_tests_properties(native_ps1_minigame PROPERTIES
+  PASS_REGULAR_EXPRESSION "RESULT score=2 turns=10")
+add_test(NAME ps1_recomp_python_tests
+  COMMAND "${Python3_EXECUTABLE}" -m unittest discover
+          -s "${CMAKE_CURRENT_SOURCE_DIR}/tests" -p "test_ps1_recomp.py" -v)
+
 add_executable(preset_tests tests/preset_tests.cpp)
 target_include_directories(preset_tests PRIVATE src)
 add_test(NAME preset_tests COMMAND preset_tests)
