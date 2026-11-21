@@ -12,6 +12,8 @@
 #include <windows.h>
 #include <array>
 #include <cstdint>
+#include <cstring>
+#include <algorithm>
 #include <cstdlib>
 #include <cwchar>
 #include <filesystem>
