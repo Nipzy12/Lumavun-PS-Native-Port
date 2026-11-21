@@ -7,6 +7,28 @@ enable_testing()
 # V0.5: self-authored PS-X EXE -> statically translated native Windows executable.
 # Strictly limited MIPS-I demo subset, NOT a universal PS1 game port.
 find_package(Python3 COMPONENTS Interpreter REQUIRED)
+# V0.8.1: statically compile the original PPC64 homebrew ELF to C++ and native Windows.
+# The test-only custom hostcall is not PS3 CellOS / syscall compatibility.
+set(PPU_DEMO_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated")
+set(PPU_DEMO_ELF "${PPU_DEMO_DIR}/PPU_HOMEBREW.ELF")
+set(PPU_DEMO_CPP "${PPU_DEMO_DIR}/LumavunPPUHomebrewPort.cpp")
+add_custom_command(
+  OUTPUT "${PPU_DEMO_CPP}"
+  BYPRODUCTS "${PPU_DEMO_ELF}"
+  COMMAND "${CMAKE_COMMAND}" -E make_directory "${PPU_DEMO_DIR}"
+  COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tools/ppu_homebrew.py" "${PPU_DEMO_ELF}"
+  COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tools/ppu_static_recomp.py" "${PPU_DEMO_ELF}" "${PPU_DEMO_CPP}"
+  DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/tools/ppu_homebrew.py"
+          "${CMAKE_CURRENT_SOURCE_DIR}/tools/ppu_static_recomp.py"
+  VERBATIM
+)
+add_executable(LumavunPPUHomebrewPort "${PPU_DEMO_CPP}")
+add_test(NAME native_ppu_homebrew COMMAND LumavunPPUHomebrewPort)
+set_tests_properties(native_ppu_homebrew PROPERTIES PASS_REGULAR_EXPRESSION "PPU_HOMEBREW_RESULT=15")
+add_test(NAME ppu_recomp_python_tests
+  COMMAND "${Python3_EXECUTABLE}" -m unittest discover
+          -s "${CMAKE_CURRENT_SOURCE_DIR}/tests" -p "test_ppu_recomp.py" -v)
+
 set(PS1_DEMO_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated")
 set(PS1_DEMO_INPUT "${PS1_DEMO_DIR}/PS1_MINIGAME.EXE")
 set(PS1_DEMO_CPP "${PS1_DEMO_DIR}/LumavunPS1MiniPort.cpp")
