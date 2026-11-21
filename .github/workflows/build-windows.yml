@@ -23,5 +23,8 @@ jobs:
             build/Release/LumavunPSLauncher.exe
             build/Release/lumavun_inspect.exe
             build/Release/lumavun_port.exe
+            build/Release/LumavunPS1MiniPort.exe
+            build/generated/PS1_MINIGAME.EXE
+            build/generated/LumavunPS1MiniPort.cpp
             build/Release/data/compatibility.tsv
           if-no-files-found: error
