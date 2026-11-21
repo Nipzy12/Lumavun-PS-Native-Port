@@ -65,3 +65,7 @@ SPU/RSX/CellOS or playable Gundam Reborn. See [V0.8.3](V0.8.3-PPU-STACK.md).
 ## V0.8.4 multi-segment ELF and relocation proof
 
 The original PPC64 demo now uses separate executable and data PT_LOAD mappings, zero-initialized BSS, and a symbol-free `R_PPC64_RELATIVE` RELA record. Strict ELF validation is applied before generating C++ native code. Tests verify that a relocated pointer actually works in the compiled Windows program, and that malformed or unsupported relocation inputs are rejected. This **does not** support arbitrary PS3 binaries, encrypted EBOOTs, external imports, SPU/RSX/CellOS or playable Gundam Reborn. See [V0.8.4 details](V0.8.4-ELF-RELOCATIONS.md).
+
+## V0.8.5 region-aware guest memory and PPC immediates
+
+The original PowerPC64 homebrew exercises `addis/ori/xori` with a native C++ translation and a guest-memory load/store round-trip. The 64-KiB sandbox now enforces per-region boundaries for scratch, ELF writable PT_LOADs and homebrew stack. Dynamic ELF imports/symbol tables are refused rather than treated as resolved. This remains a limited homebrew prototype with no retail PS3 ELF compatibility, SPU/RSX/CellOS or Gundam Reborn gameplay. See [V0.8.5 technical notes](V0.8.5-PPU-MEMORY-OPS.md).
