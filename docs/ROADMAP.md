@@ -52,3 +52,12 @@ A self-authored PowerPC64 ELF demo now undergoes a strict subset of genuine stat
 ## V0.8.2 checked guest-memory proof
 
 Extended the *original PPC64 demo* static translation with 64-bit/32-bit big-endian loads and stores, byte reads, a deliberately bounded 64 KiB sandbox, alignment and bounds traps. Actual MSVC-compiled homebrew code is tested; retail game builds remain blocked. A mapped PS3 address space, ABI, stack, multiple ELF load segments, CellOS, SPU, RSX, and Gundam Reborn gameplay are **not** implemented. See [V0.8.2 details](V0.8.2-PPU-GUEST-MEMORY.md).
+
+## V0.8.3 nested calls and homebrew guest stack
+
+PPC64 `stdu`, `mflr` and `mtlr` have been added to the restrictive static
+translator for a self-authored ELF. The original machine code performs two
+nested calls with guest 32-byte stack frames and verifies stack/LR restoration
+from native Windows output. Unsupported SPRs and invalid stack accesses are
+rejected. This is not an implementation of PS3 PPU ABI, real-game relocations,
+SPU/RSX/CellOS or playable Gundam Reborn. See [V0.8.3](V0.8.3-PPU-STACK.md).
