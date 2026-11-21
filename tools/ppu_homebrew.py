@@ -89,7 +89,13 @@ def words(guest_pointer=0x2000):
         memory_op(34, 10, 5, 14), # 26: big-endian byte 0x12
         memory_op(34, 11, 5, 15), # 27: big-endian byte 0x34
         memory_op(58, 1, 1, 0),   # 28: release nested frame
-        0x4E800020,               # 29: blr to worker
+        addi(15, 0, 0x3000),       # 29: separate ELF RW PT_LOAD segment
+        memory_op(58, 16, 15, 0), # 30: ld R_PPC64_RELATIVE pointer (0x2000)
+        memory_op(62, 4, 16, 0),  # 31: std result through relocated pointer
+        memory_op(58, 17, 16, 0), # 32: ld back via relocated pointer
+        memory_op(34, 18, 15, 8), # 33: initialized .data byte 0xab
+        memory_op(34, 19, 15, 32),# 34: zero-filled BSS byte
+        0x4E800020,               # 35: blr to worker
     ]
 
 
@@ -97,16 +103,37 @@ def create_elf(path, guest_pointer=0x2000):
     payload = b''.join(struct.pack('>I', word) for word in words(guest_pointer))
     if len(payload) > 4096:
         raise ValueError('fixture too large')
-    header = bytearray(64)
-    header[:7] = b'\x7fELF\x02\x02\x01'
-    struct.pack_into('>HHIQQQIHHHHHH', header, 16,
-                     2, 21, 1, BASE, 64, 0, 0, 64, 56, 1, 0, 0, 0)
-    ph = struct.pack('>IIQQQQQQ', 1, 5, OFFSET, BASE, BASE,
+
+    # Two PT_LOADs: separate executable code and RW data (including zero BSS).
+    # One SHT_RELA carries a symbol-free R_PPC64_RELATIVE (type 22).
+    # Fixed ET_EXEC load bias B=0, relocation value is B+A = 0x2000.
+    code_offset = OFFSET
+    data_offset = 0x2000
+    rela_offset = 0x2020
+    section_offset = 0x2040
+    total = section_offset + 2 * 64
+    image = bytearray(total)
+    image[:7] = b'\x7fELF\x02\x02\x01'
+    struct.pack_into('>HHIQQQIHHHHHH', image, 16,
+                     2, 21, 1, BASE, 64, section_offset, 0,
+                     64, 56, 2, 64, 2, 0)
+    # RX code segment: at offset 0x1000, virtual address 0x10000
+    struct.pack_into('>IIQQQQQQ', image, 64,
+                     1, 5, code_offset, BASE, BASE,
                      len(payload), len(payload), 0x1000)
-    result = bytes(header) + ph + bytes(OFFSET - 64 - len(ph)) + payload
+    # RW data with 16 bytes initialized and 64 bytes in memory (BSS).
+    struct.pack_into('>IIQQQQQQ', image, 120,
+                     1, 6, data_offset, 0x3000, 0x3000, 16, 64, 0x1000)
+    image[code_offset:code_offset+len(payload)] = payload
+    image[data_offset+8] = 0xab  # initialized .data signature
+    # ELF64_R_INFO: sym=0, type=R_PPC64_RELATIVE(22)
+    struct.pack_into('>QQq', image, rela_offset, 0x3000, 22, 0x2000)
+    # Section #0 is SHT_NULL. Section #1 is SHT_RELA with 24-byte records.
+    struct.pack_into('>IIQQQQIIQQ', image, section_offset+64,
+                     0, 4, 0, 0, rela_offset, 24, 0, 0, 8, 24)
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_bytes(result)
+    path.write_bytes(image)
     return len(words())
 
 
