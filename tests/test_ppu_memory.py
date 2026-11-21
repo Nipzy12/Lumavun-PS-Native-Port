@@ -3,6 +3,7 @@
 Synthetic, owned ELF only. No PS3 firmware or commercial game.
 """
 import pathlib
+import shutil
 import struct
 import subprocess
 import sys
@@ -67,6 +68,8 @@ class PPUGuestMemoryTests(unittest.TestCase):
         text = cpp.read_text()
         self.assertIn('guest_load(', text)
         self.assertIn('guest_store(', text)
+        if not shutil.which('g++'):
+            self.skipTest('Native execution covered by CMake target on Windows')
         result = run_native(cpp, self.directory)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('PPU_HOMEBREW_RESULT=15', result.stdout)
