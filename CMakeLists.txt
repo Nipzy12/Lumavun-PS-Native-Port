@@ -12,6 +12,23 @@ add_test(NAME inspector_tests COMMAND inspector_tests)
 add_executable(disc_tests tests/disc_tests.cpp)
 target_include_directories(disc_tests PRIVATE src)
 add_test(NAME disc_tests COMMAND disc_tests)
+add_executable(pipeline_tests tests/pipeline_tests.cpp)
+target_include_directories(pipeline_tests PRIVATE src)
+add_test(NAME pipeline_tests COMMAND pipeline_tests)
+add_executable(lumavun_port src/port_cli.cpp)
+target_include_directories(lumavun_port PRIVATE src)
+add_test(NAME port_backends COMMAND lumavun_port backends)
+add_test(NAME port_compatibility COMMAND lumavun_port compatibility --catalog "${CMAKE_CURRENT_SOURCE_DIR}/data/compatibility.tsv")
+add_test(NAME port_build_safely_blocked
+         COMMAND lumavun_port build "${CMAKE_CURRENT_SOURCE_DIR}/data/compatibility.tsv"
+                    --profile gundam-reborn --catalog "${CMAKE_CURRENT_SOURCE_DIR}/data/compatibility.tsv")
+set_tests_properties(port_build_safely_blocked PROPERTIES WILL_FAIL TRUE)
+add_custom_command(TARGET lumavun_port POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:lumavun_port>/data"
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different
+      "${CMAKE_CURRENT_SOURCE_DIR}/data/compatibility.tsv"
+      "$<TARGET_FILE_DIR:lumavun_port>/data/compatibility.tsv")
+
 add_executable(lumavun_inspect src/inspect_cli.cpp)
 target_include_directories(lumavun_inspect PRIVATE src)
 if(WIN32)

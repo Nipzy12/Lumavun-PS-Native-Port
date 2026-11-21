@@ -6,8 +6,8 @@ This file is the source of truth for staged development. Every stage must includ
 | --- | --- | --- | --- |
 | V0.1 | Native launcher, conservative hardware presets | Windows build and preset tests | Done |
 | V0.2 | Game-file import, basic signatures | Import/report tests | Done |
-| V0.3 | Disc image analyzer | ISO9660 2048 & raw 2352 parse, PS1/PS2/PS3 candidate tests, malformed input safe | In review |
-| V0.4 | Recompiler backend interface, compatibility database, build graph, error codes | Demonstrate dry-run and unsupported titles without claiming successful port | Planned |
+| V0.3 | Disc image analyzer | ISO9660 2048 & raw 2352 parse, PS1/PS2/PS3 candidate tests, malformed input safe | Done (candidate detection only) |
+| V0.4 | Recompiler backend interface, compatibility database, build graph, error codes | Demonstrate dry-run and unsupported titles without claiming successful port | In review |
 | V0.5 | First reproducible *actual* native recompilation on authorized small PS1 code/game | Real translated game code runs as Windows x64 without emulator, gameplay validated | Blocked: choose a feasible source |
 | V0.6 | PS2 and PS3 backend feasibility | Game-specific executable/function inventory, graphics/SPU gaps documented | Blocked: lawful test material and toolchain |
 | V0.7 | Native runtime replacement | Real renderer/input/audio/save APIs required by selected title | Blocked: V0.6 |
@@ -24,3 +24,7 @@ This file is the source of truth for staged development. Every stage must includ
 5. PS4 and PS5 conversion are not currently supported; universal one-click conversion is not an attainable release promise.
 6. The low-spec preset is a *starting hypothesis*, not proof of playable FPS.
 7. Reuse PS1Recomp, PS2Recomp, or ps3recomp only after per-project license and compatibility validation.
+
+## V0.4 implementation notes
+
+Native pipeline CLI and research-only compatibility database live in src/port_pipeline.hpp, src/port_cli.cpp, and data/compatibility.tsv. The backend contract exists, but no game-specific translator or native runtime is implemented. The build command returns a blocking error until that exists. See [V0.4 contract](V0.4-PIPELINE.md).

@@ -33,3 +33,12 @@ The launcher includes **Import Game File**, **Import Game Folder**, and **Save R
 The import analyzer now inspects ISO9660 Primary Volume Descriptors and bounded root-directory metadata from 2048-byte data-sector images and raw 2352-byte Mode1 images. It identifies PS1/PS2 candidates using SYSTEM.CNF (BOOT/BOOT2) and PS3 candidates using PS3_GAME. It does **not** decrypt, emulate, recompile, or port these images. Unsupported ISO variants remain ambiguous. Disc scanning reads at most 1 MiB of directory records and small metadata buffers, avoiding loading a full game image into RAM.
 
 See [staged roadmap](docs/ROADMAP.md) for acceptance criteria, known blockers, and next work.
+
+## V0.4 Porting pipeline (experimental)
+
+The build manager now provides a typed backend interface and a safe, machine-readable compatibility check.
+The Windows artifact includes lumavun_port.exe and data/compatibility.tsv. Run the porting CLI
+with backends, compatibility, plan, or build. The build command intentionally rejects unsupported
+titles, so no user receives a fake port executable. See [V0.4 guide](docs/V0.4-PIPELINE.md).
+
+**A working game-specific native translator is still missing.** Gundam Reborn remains research-only.

@@ -22,4 +22,6 @@ jobs:
           path: |
             build/Release/LumavunPSLauncher.exe
             build/Release/lumavun_inspect.exe
+            build/Release/lumavun_port.exe
+            build/Release/data/compatibility.tsv
           if-no-files-found: error
