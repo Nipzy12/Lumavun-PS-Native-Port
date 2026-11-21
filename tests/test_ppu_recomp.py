@@ -31,7 +31,8 @@ class PPUStaticRecompilerTest(unittest.TestCase):
             subprocess.run(['g++', '-std=c++17', '-O2', str(cpp), '-o', str(binary)], check=True)
             process = subprocess.run([str(binary)], text=True, capture_output=True, timeout=10)
             self.assertEqual(process.returncode, 0, process.stderr)
-            self.assertEqual(process.stdout.strip(), 'PPU_HOMEBREW_RESULT=15')
+            self.assertEqual(process.stdout.strip().splitlines(),
+                             ['PPU_HOMEBREW_RESULT=15', 'PPU_GUEST_BE_BYTES=18,52'])
 
     def test_rejects_unrecognized_opcode_without_output(self):
         data = bytearray(self.elf.read_bytes())
