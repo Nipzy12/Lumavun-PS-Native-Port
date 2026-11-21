@@ -8,11 +8,15 @@
 #include <vector>
 #include <string>
 #include "preset.hpp"
+#include "inspector.hpp"
+#include <commdlg.h>
+#include <shlobj.h>
 namespace fs=std::filesystem;
 namespace {
-constexpr int BTN_SCAN=101, BTN_SAVE=102, BTN_PLAY=103;
+constexpr int BTN_SCAN=101, BTN_SAVE=102, BTN_PLAY=103, BTN_FILE=104, BTN_FOLDER=105, BTN_REPORT=106;
 HWND root=nullptr,info=nullptr,label=nullptr,status=nullptr,playBtn=nullptr;
-HWND resolution=nullptr,scale=nullptr,fps=nullptr,fullscreen=nullptr;
+HWND resolution=nullptr,scale=nullptr,fps=nullptr,fullscreen=nullptr,importInfo=nullptr;
+lumavun::Inspection imported;bool hasImport=false;
 lumavun::Specs specs;lumavun::Preset recommended;
 std::string utf8(const std::wstring& w){
   if(w.empty())return {};
@@ -158,6 +162,42 @@ void launch(){
   CloseHandle(process.hThread);CloseHandle(process.hProcess);
   set(status,L"Native process started. Playability and performance not yet verified.");
 }
+
+void importedPath(const fs::path& p){
+  imported=lumavun::inspect(p);hasImport=true;
+  set(importInfo,L"Detected: "+wide(imported.platform)+L" | "+wide(imported.format)+
+    L"\r\nStatus: "+wide(imported.status)+L" (native game port NOT available)");
+}
+void importFile(){
+  std::array<wchar_t,32768> p{};
+  OPENFILENAMEW d{};d.lStructSize=sizeof(d);d.hwndOwner=root;
+  d.lpstrFile=p.data();d.nMaxFile=static_cast<DWORD>(p.size());
+  d.lpstrFilter=L"Games\0*.iso;*.bin;*.cue;*.elf;*.pkg;*.img;*.exe\0All files\0*.*\0";
+  d.Flags=OFN_FILEMUSTEXIST|OFN_PATHMUSTEXIST|OFN_EXPLORER;
+  if(GetOpenFileNameW(&d))importedPath(fs::path(p.data()));
+}
+void importFolder(){
+  BROWSEINFOW d{};d.hwndOwner=root;
+  d.lpszTitle=L"Select PS3_GAME or extracted game folder";
+  d.ulFlags=BIF_RETURNONLYFSDIRS|BIF_NEWDIALOGSTYLE;
+  LPITEMIDLIST item=SHBrowseForFolderW(&d);
+  if(!item)return;
+  std::array<wchar_t,32768> p{};
+  bool good=SHGetPathFromIDListW(item,p.data())!=FALSE;
+  CoTaskMemFree(item);
+  if(good)importedPath(fs::path(p.data()));
+}
+void saveImport(){
+  if(!hasImport){MessageBoxW(root,L"Import a game first.",L"LUMAVUN",MB_OK);return;}
+  fs::path output=configPath().parent_path()/L"import-report.json";
+  std::error_code ec;fs::create_directories(output.parent_path(),ec);
+  if(ec){MessageBoxW(root,L"Could not create output folder.",L"LUMAVUN",MB_OK);return;}
+  std::ofstream f(output,std::ios::binary|std::ios::trunc);
+  f<<lumavun::toJson(imported);f.flush();
+  MessageBoxW(root,f.good()?L"Saved inspection report. No native port was created.":
+    L"Report save failed.",L"LUMAVUN",MB_OK);
+}
+
 LRESULT CALLBACK wndProc(HWND h,UINT message,WPARAM w,LPARAM l){
   if(message==WM_CREATE){
     root=h;
@@ -175,7 +215,12 @@ LRESULT CALLBACK wndProc(HWND h,UINT message,WPARAM w,LPARAM l){
     control(L"BUTTON",L"Scan & Recommend",WS_TABSTOP,24,415,190,42,BTN_SCAN);
     control(L"BUTTON",L"Save Settings",WS_TABSTOP,235,415,190,42,BTN_SAVE);
     playBtn=control(L"BUTTON",L"Play Game",WS_TABSTOP,445,415,190,42,BTN_PLAY);
-    status=control(L"STATIC",L"",0,24,482,645,45);
+    status=control(L"STATIC",L"",0,24,482,645,38);
+    control(L"STATIC",L"GAME IMPORT / INSPECTION",0,24,526,660,25);
+    control(L"BUTTON",L"Import Game File",WS_TABSTOP,24,555,190,38,BTN_FILE);
+    control(L"BUTTON",L"Import Game Folder",WS_TABSTOP,235,555,190,38,BTN_FOLDER);
+    control(L"BUTTON",L"Save Report",WS_TABSTOP,445,555,190,38,BTN_REPORT);
+    importInfo=control(L"STATIC",L"No game imported. Native recompilation is not yet implemented.",0,24,610,670,55);
     refresh();return 0;
   }
   if(message==WM_COMMAND){
@@ -185,6 +230,9 @@ LRESULT CALLBACK wndProc(HWND h,UINT message,WPARAM w,LPARAM l){
         MessageBoxW(h,ok?L"Saved settings.":L"Could not save settings.",L"LUMAVUN",
           MB_OK|(ok?MB_ICONINFORMATION:MB_ICONERROR));return 0;}
       case BTN_PLAY:launch();return 0;
+      case BTN_FILE:importFile();return 0;
+      case BTN_FOLDER:importFolder();return 0;
+      case BTN_REPORT:saveImport();return 0;
     }
   }
   if(message==WM_DESTROY){PostQuitMessage(0);return 0;}
@@ -198,7 +246,7 @@ int WINAPI wWinMain(HINSTANCE instance,HINSTANCE,LPWSTR,int show){
   wc.hCursor=LoadCursorW(nullptr,IDC_ARROW);
   if(!RegisterClassW(&wc))return 1;
   HWND h=CreateWindowW(wc.lpszClassName,L"LUMAVUN PS Native Port",WS_OVERLAPPEDWINDOW,
-    CW_USEDEFAULT,CW_USEDEFAULT,710,590,nullptr,nullptr,instance,nullptr);
+    CW_USEDEFAULT,CW_USEDEFAULT,710,725,nullptr,nullptr,instance,nullptr);
   if(!h)return 2;
   ShowWindow(h,show);UpdateWindow(h);
   MSG msg{};while(GetMessageW(&msg,nullptr,0,0)>0){TranslateMessage(&msg);DispatchMessageW(&msg);}

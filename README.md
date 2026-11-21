@@ -25,3 +25,6 @@ Binary: build/Release/LumavunPSLauncher.exe.
 For AMD A4 / Radeon R3 / 4 GB RAM, the suggested starting preset is 960x540, 70% internal scale and 30 FPS. It is **not a guaranteed measured frame rate**.
 
 This repository does not contain copyrighted games, keys or firmware.
+
+## V0.2 Game inspection
+The launcher includes **Import Game File**, **Import Game Folder**, and **Save Report**. The separate `lumavun_inspect` command analyzes simple PS1/PS2/PS3 executable signatures and game folder structures. It does not run a native recompiler or create playable ports. ISO and package parsing are not implemented. Gundam Reborn is not yet ported.

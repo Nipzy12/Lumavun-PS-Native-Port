@@ -19,5 +19,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: LumavunPSLauncher-Windows-x64
-          path: build/Release/LumavunPSLauncher.exe
+          path: |
+            build/Release/LumavunPSLauncher.exe
+            build/Release/lumavun_inspect.exe
           if-no-files-found: error

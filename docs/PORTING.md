@@ -14,3 +14,6 @@ Next:
 
 No assumption that PS4 and PS5 games are universally convertible.
 Do not include copyrighted game binaries, assets, encryption keys or system firmware in this repository.
+
+## V0.2 Stage: file importer
+Recognizes PS-X EXE, MIPS / PPC ELF, PS3_GAME folder, PS2 SYSTEM.CNF, and flags ISO/BIN/CUE/PKG for further parsing. **Not recompilation.** A playable Gundam Reborn port needs decrypted PS3 game executable, SPU/GPU/audio runtime implementation and per-game development; see https://github.com/sp00nznet/ps3recomp.
