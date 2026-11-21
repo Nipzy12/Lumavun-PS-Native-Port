@@ -7,7 +7,7 @@ This file is the source of truth for staged development. Every stage must includ
 | V0.1 | Native launcher, conservative hardware presets | Windows build and preset tests | Done |
 | V0.2 | Game-file import, basic signatures | Import/report tests | Done |
 | V0.3 | Disc image analyzer | ISO9660 2048 & raw 2352 parse, PS1/PS2/PS3 candidate tests, malformed input safe | Done (candidate detection only) |
-| V0.4 | Recompiler backend interface, compatibility database, build graph, error codes | Demonstrate dry-run and unsupported titles without claiming successful port | In review |
+| V0.4 | Recompiler backend interface, compatibility database, build graph, error codes | Demonstrate dry-run and unsupported titles without claiming successful port | Done: control plane only; no native translator |
 | V0.5 | First reproducible *actual* native recompilation on authorized small PS1 code/game | Real translated game code runs as Windows x64 without emulator, gameplay validated | Blocked: choose a feasible source |
 | V0.6 | PS2 and PS3 backend feasibility | Game-specific executable/function inventory, graphics/SPU gaps documented | Blocked: lawful test material and toolchain |
 | V0.7 | Native runtime replacement | Real renderer/input/audio/save APIs required by selected title | Blocked: V0.6 |
