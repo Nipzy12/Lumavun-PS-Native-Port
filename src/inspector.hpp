@@ -12,7 +12,7 @@ struct Inspection {
   fs::path path;std::string platform="Unknown",format="Unknown",status="UNRECOGNIZED";
   std::string detail="Unknown format; no native conversion attempted.";
 };
-inline std::string lower(std::string s){
+inline std::string lowerInspect(std::string s){
   std::transform(s.begin(),s.end(),s.begin(),
     [](unsigned char c){return static_cast<char>(std::tolower(c));});return s;
 }
@@ -50,7 +50,7 @@ inline Inspection inspect(const fs::path& p) {
     r.status="REQUIRES_NATIVE_PORT";
     r.detail="ELF signature checked; no native port has been built.";return r;
   }
-  auto name=lower(p.filename().string()), ext=lower(p.extension().string());
+  auto name=lowerInspect(p.filename().string()), ext=lowerInspect(p.extension().string());
   if(name=="eboot.bin"){r.platform="PS3 candidate";r.format="EBOOT.BIN";
     r.status="NEEDS_ELF";r.detail="Encrypted EBOOT filename alone is not a decrypted ELF.";}
   else if(ext==".cue"){r.platform="PS1 candidate";r.format="CUE";
