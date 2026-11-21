@@ -20,6 +20,33 @@ add_custom_command(
           "${CMAKE_CURRENT_SOURCE_DIR}/tools/ps1_static_recomp.py"
   VERBATIM
 )
+
+# Native Win32 windowed host for the SAME statically translated PS-X EXE.
+# GDI / user32 graphics and event-driven keyboard input, not PlayStation hardware.
+if(WIN32)
+  set(PS1_GUI_CPP "${PS1_DEMO_DIR}/LumavunPS1MiniPortGui.cpp")
+  add_custom_command(
+    OUTPUT "${PS1_GUI_CPP}"
+    COMMAND "${CMAKE_COMMAND}" -E make_directory "${PS1_DEMO_DIR}"
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tools/make_demo_ps1.py" "${PS1_DEMO_INPUT}"
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tools/ps1_static_recomp.py"
+            "${PS1_DEMO_INPUT}" "${PS1_GUI_CPP}" --gui
+    DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/tools/make_demo_ps1.py"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tools/ps1_static_recomp.py"
+            "${CMAKE_CURRENT_SOURCE_DIR}/src/native_game_win.hpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/src/native_runtime_state.hpp"
+    VERBATIM
+  )
+  add_executable(LumavunPS1MiniPortGui WIN32 "${PS1_GUI_CPP}")
+  target_include_directories(LumavunPS1MiniPortGui PRIVATE src)
+  target_compile_definitions(LumavunPS1MiniPortGui PRIVATE UNICODE _UNICODE)
+  target_link_libraries(LumavunPS1MiniPortGui PRIVATE user32 gdi32)
+  add_test(NAME native_ps1_gui_self_test COMMAND LumavunPS1MiniPortGui --self-test)
+endif()
+add_executable(native_runtime_tests tests/native_runtime_tests.cpp)
+target_include_directories(native_runtime_tests PRIVATE src)
+add_test(NAME native_runtime_tests COMMAND native_runtime_tests)
+
 add_executable(LumavunPS1MiniPort "${PS1_DEMO_CPP}")
 add_test(NAME native_ps1_minigame COMMAND LumavunPS1MiniPort --self-test)
 set_tests_properties(native_ps1_minigame PROPERTIES
