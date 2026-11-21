@@ -10,11 +10,12 @@
 #include "preset.hpp"
 #include "inspector.hpp"
 #include "console_elf.hpp"
+#include "ppu_code_inventory.hpp"
 #include <commdlg.h>
 #include <shlobj.h>
 namespace fs=std::filesystem;
 namespace {
-constexpr int BTN_SCAN=101, BTN_SAVE=102, BTN_PLAY=103, BTN_FILE=104, BTN_FOLDER=105, BTN_REPORT=106, BTN_DEMO=107, BTN_FEASIBILITY=108;
+constexpr int BTN_SCAN=101, BTN_SAVE=102, BTN_PLAY=103, BTN_FILE=104, BTN_FOLDER=105, BTN_REPORT=106, BTN_DEMO=107, BTN_FEASIBILITY=108, BTN_PPU=109;
 HWND root=nullptr,info=nullptr,label=nullptr,status=nullptr,playBtn=nullptr;
 HWND resolution=nullptr,scale=nullptr,fps=nullptr,fullscreen=nullptr,importInfo=nullptr;
 lumavun::Inspection imported;bool hasImport=false;
@@ -225,6 +226,34 @@ void analyzeConsoleBinary(){
   MessageBoxW(root,message.c_str(),L"LUMAVUN Binary Feasibility",MB_OK|MB_ICONINFORMATION);
 }
 
+void analyzePpuCode(){
+  if(!hasImport){
+    MessageBoxW(root,L"Import a PS3 ELF or PS3_GAME folder first.",
+      L"LUMAVUN",MB_OK|MB_ICONINFORMATION);
+    return;
+  }
+  const auto result=lumavun::ppu::scan(imported.path);
+  const auto report=lumavun::ppu::json(result);
+  const fs::path path=configPath().parent_path()/L"ppu-inventory.json";
+  std::error_code ec;
+  fs::create_directories(path.parent_path(),ec);
+  bool saved=false;
+  if(!ec){
+    std::ofstream out(path,std::ios::binary|std::ios::trunc);
+    if(out){out<<report;out.flush();saved=out.good();}
+  }
+  std::wstring summary=L"PS3 PPU code inventory: "+wide(result.status)+
+    L"\r\nInstructions scanned: "+std::to_wstring(result.instructionWords)+
+    L"\r\nBranch and link: "+std::to_wstring(result.linkBranches)+
+    L"\r\nCandidate targets (unverified): "+
+      std::to_wstring(result.candidateTargetSamples.size())+
+    L"\r\nPort status: NOT AVAILABLE."+
+    (saved?L"\r\nReport saved under LocalAppData.":L"\r\nReport could not be saved.");
+  set(importInfo,L"PPU "+wide(result.status)+L"\r\n"+
+    std::to_wstring(result.instructionWords)+L" instruction words inspected. No native port.");
+  MessageBoxW(root,summary.c_str(),L"LUMAVUN PPU Research",MB_OK|MB_ICONINFORMATION);
+}
+
 void launchPs1Demo(){
   const auto path=exeFolder()/L"LumavunPS1MiniPortGui.exe";
   std::error_code ec;
@@ -252,7 +281,7 @@ void launchPs1Demo(){
 LRESULT CALLBACK wndProc(HWND h,UINT message,WPARAM w,LPARAM l){
   if(message==WM_CREATE){
     root=h;
-    control(L"STATIC",L"LUMAVUN PS Native | Win32 Homebrew Runtime v0.7",0,24,18,620,30);
+    control(L"STATIC",L"LUMAVUN PS Native | PS3 PPU Research v0.8",0,24,18,620,30);
     info=control(L"STATIC",L"Detecting...",0,24,56,645,78);
     label=control(L"STATIC",L"",0,24,145,630,28);
     control(L"STATIC",L"Resolution",0,24,210,230,22);
@@ -274,6 +303,7 @@ LRESULT CALLBACK wndProc(HWND h,UINT message,WPARAM w,LPARAM l){
     importInfo=control(L"STATIC",L"No game imported. Real-game recompilation is not available.",0,24,610,670,55);
     control(L"BUTTON",L"Play Recompiled PS1 Graphical Demo",WS_TABSTOP,24,678,400,36,BTN_DEMO);
     control(L"BUTTON",L"Analyze PS2/PS3 ELF or SELF",WS_TABSTOP,24,725,400,36,BTN_FEASIBILITY);
+    control(L"BUTTON",L"Analyze PS3 PPU Code (Read Only)",WS_TABSTOP,24,773,400,36,BTN_PPU);
     refresh();return 0;
   }
   if(message==WM_COMMAND){
@@ -288,6 +318,7 @@ LRESULT CALLBACK wndProc(HWND h,UINT message,WPARAM w,LPARAM l){
       case BTN_REPORT:saveImport();return 0;
       case BTN_DEMO:launchPs1Demo();return 0;
       case BTN_FEASIBILITY:analyzeConsoleBinary();return 0;
+      case BTN_PPU:analyzePpuCode();return 0;
     }
   }
   if(message==WM_DESTROY){PostQuitMessage(0);return 0;}
@@ -301,7 +332,7 @@ int WINAPI wWinMain(HINSTANCE instance,HINSTANCE,LPWSTR,int show){
   wc.hCursor=LoadCursorW(nullptr,IDC_ARROW);
   if(!RegisterClassW(&wc))return 1;
   HWND h=CreateWindowW(wc.lpszClassName,L"LUMAVUN PS Native Port",WS_OVERLAPPEDWINDOW,
-    CW_USEDEFAULT,CW_USEDEFAULT,710,850,nullptr,nullptr,instance,nullptr);
+    CW_USEDEFAULT,CW_USEDEFAULT,710,920,nullptr,nullptr,instance,nullptr);
   if(!h)return 2;
   ShowWindow(h,show);UpdateWindow(h);
   MSG msg{};while(GetMessageW(&msg,nullptr,0,0)>0){TranslateMessage(&msg);DispatchMessageW(&msg);}
