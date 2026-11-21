@@ -101,6 +101,10 @@ def parse_ppu_image(path):
                     memsz <= 4096 and memsz <= GUEST_END-va and
                     va % 8 == 0):
                 raise ElfLayoutError('RW segment outside bounded demo guest RAM')
+            # The demo host owns scratch (0x2000..0x20ff) and stack
+            # (0x6000..0x6fff). An ELF data section cannot silently remap them.
+            if overlaps(va, memsz, 0x2000, 0x100) or overlaps(va, memsz, 0x6000, 0x1000):
+                raise ElfLayoutError('ELF data overlaps reserved demo scratch/stack region')
             data.append(DataSegment(va, blob[offset:offset+filesz], memsz))
         else:
             raise ElfLayoutError('Only RX code and RW data segments are supported')
@@ -118,6 +122,8 @@ def parse_ppu_image(path):
         for idx in range(shnum):
             (name, shtype, shflags, addr, offset, size, link, info, addralign, entsize) = struct.unpack_from(
                 '>IIQQQQIIQQ', blob, shoff + idx * shsize)
+            if shtype in (6, 11):
+                raise ElfLayoutError('ELF dynamic imports or symbol sections are not supported')
             if shtype == 9:
                 raise ElfLayoutError('SHT_REL implicit-addend relocations not supported')
             if shtype != 4:  # Only SHT_RELA processed, other sections are metadata

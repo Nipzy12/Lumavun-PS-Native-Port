@@ -90,3 +90,7 @@ Gundam Reborn. [Technical notes](docs/V0.8.3-PPU-STACK.md).
 ## V0.8.4: multi-segment PPC64 ELF and bounded RELA relocation
 
 Our self-authored PPC64 homebrew ELF now has separate executable and initialized RW data/BSS PT_LOAD segments. A checked `R_PPC64_RELATIVE` (type 22) relocation patches a guest pointer before the statically translated instructions run. The native output adds `PPU_ELF_RELOCATED=1` only after verifying relocated data, an initialized byte, and zero-filled BSS. Malformed sections and unsupported relocations fail closed. This is **not** dynamic linking, a full PS3 memory loader or a Gundam Reborn port. See [V0.8.4 technical guide](docs/V0.8.4-ELF-RELOCATIONS.md).
+
+## V0.8.5: stricter PPC64 guest memory and three immediate operations
+
+The **original PPC64 ELF** now uses real `addis / ori / xori` instructions, stores the result via PPC memory operations, and reports `PPU_IMMEDIATE_CHAIN=1`. Runtime memory accesses are restricted to separate demo scratch, validated ELF RW data/BSS, and stack regions instead of any address inside the 64-KiB backing array. Invalid memory holes and addresses at region ends must return exit code 12. ELF dynamic symbol/dependency sections are explicitly rejected because no import resolver exists. This is **not** a functional PS3 game port. [V0.8.5 implementation](docs/V0.8.5-PPU-MEMORY-OPS.md).

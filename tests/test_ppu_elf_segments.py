@@ -31,7 +31,7 @@ class PPUMultiSegmentTests(unittest.TestCase):
         image=parse_ppu_image(self.elf)
         self.assertEqual(image.code_base,0x10000)
         self.assertEqual(image.entry_index,0)
-        self.assertEqual(len(image.words),36)
+        self.assertEqual(len(image.words),41)
         self.assertEqual(len(image.data_segments),1)
         data=image.data_segments[0]
         self.assertEqual(data.virtual_address,0x3000)

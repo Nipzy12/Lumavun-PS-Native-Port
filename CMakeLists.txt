@@ -25,11 +25,15 @@ add_custom_command(
 )
 # Exercise out-of-range and unaligned memory traps in *native MSVC executables*.
 # Exact exit status is checked by Python so arbitrary crashes do not count as a pass.
-foreach(variant IN ITEMS unmapped unaligned)
+foreach(variant IN ITEMS unmapped unaligned hole dataend)
   if(variant STREQUAL "unmapped")
     set(PPU_TRAP_ADDRESS 0x1000)
-  else()
+  elseif(variant STREQUAL "unaligned")
     set(PPU_TRAP_ADDRESS 0x2002)
+  elseif(variant STREQUAL "hole")
+    set(PPU_TRAP_ADDRESS 0x2500)
+  else()
+    set(PPU_TRAP_ADDRESS 0x3040)
   endif()
   set(PPU_TRAP_CPP "${PPU_DEMO_DIR}/PPUGuestTrap_${variant}.cpp")
   set(PPU_TRAP_ELF "${PPU_DEMO_DIR}/PPUGuestTrap_${variant}.ELF")
@@ -62,6 +66,9 @@ set_tests_properties(native_ppu_nested_stack PROPERTIES
 add_test(NAME native_ppu_elf_relative COMMAND LumavunPPUHomebrewPort)
 set_tests_properties(native_ppu_elf_relative PROPERTIES
   PASS_REGULAR_EXPRESSION "PPU_ELF_RELOCATED=1")
+add_test(NAME native_ppu_immediate_ops COMMAND LumavunPPUHomebrewPort)
+set_tests_properties(native_ppu_immediate_ops PROPERTIES
+  PASS_REGULAR_EXPRESSION "PPU_IMMEDIATE_CHAIN=1")
 add_test(NAME ppu_recomp_python_tests
   COMMAND "${Python3_EXECUTABLE}" -m unittest discover
           -s "${CMAKE_CURRENT_SOURCE_DIR}/tests" -p "test_ppu_recomp.py" -v)
@@ -74,6 +81,9 @@ add_test(NAME ppu_stack_python_tests
 add_test(NAME ppu_elf_segment_tests
   COMMAND "${Python3_EXECUTABLE}" -m unittest discover
           -s "${CMAKE_CURRENT_SOURCE_DIR}/tests" -p "test_ppu_elf_segments.py" -v)
+add_test(NAME ppu_v085_python_tests
+  COMMAND "${Python3_EXECUTABLE}" -m unittest discover
+          -s "${CMAKE_CURRENT_SOURCE_DIR}/tests" -p "test_ppu_v085.py" -v)
 
 set(PS1_DEMO_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated")
 set(PS1_DEMO_INPUT "${PS1_DEMO_DIR}/PS1_MINIGAME.EXE")
