@@ -25,6 +25,9 @@ jobs:
             build/Release/lumavun_port.exe
             build/Release/lumavun_probe.exe
             build/Release/lumavun_ppu_scan.exe
+            build/Release/LumavunPPUHomebrewPort.exe
+            build/generated/PPU_HOMEBREW.ELF
+            build/generated/LumavunPPUHomebrewPort.cpp
             build/Release/LumavunPS1MiniPort.exe
             build/Release/LumavunPS1MiniPortGui.exe
             build/generated/LumavunPS1MiniPortGui.cpp
