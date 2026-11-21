@@ -16,36 +16,16 @@ from ppu_homebrew import create_elf
 from ppu_static_recomp import generate, translate, RecompError
 
 
-def op_d(opcode, reg, ra, signed_offset):
-    return (opcode << 26) | (reg << 21) | (ra << 16) | (signed_offset & 0xffff)
-
-
 def guest_program(path, guest_pointer=0x2000, ds_suffix=0):
-    """Replace only the original final BLR with real PPC64 memory instructions."""
-    create_elf(path)
-    binary = bytearray(path.read_bytes())
-    program = [
-        op_d(14, 5, 0, guest_pointer),     # addi r5, r0, mapped guest address
-        op_d(62, 4, 5, 0) | ds_suffix,    # std r4,0(r5), DS-form
-        op_d(58, 6, 5, 0),               # ld r6,0(r5), DS-form
-        op_d(36, 6, 5, 8),               # stw r6,8(r5)
-        op_d(32, 7, 5, 8),               # lwz r7,8(r5)
-        op_d(14, 4, 7, 0),               # addi r4,r7,0; return value
-        op_d(14, 8, 0, 0x1234),          # addi r8,0,0x1234
-        op_d(36, 8, 5, 12),              # stw r8,12(r5), big-endian
-        op_d(34, 10, 5, 14),             # lbz r10,14(r5) -> 0x12
-        op_d(34, 11, 5, 15),             # lbz r11,15(r5) -> 0x34
-        0x4e800020,                      # blr
-    ]
-    # In the original ELF the final BLR is at instruction index 9.
-    new_payload = bytes(binary[0x1000:0x1000 + 9*4]) + b''.join(
-        struct.pack('>I', value) for value in program
-    )
-    binary = binary[:0x1000] + new_payload
-    # Program header: p_filesz and p_memsz, big-endian ELF64 at 64+32/40.
-    struct.pack_into('>Q', binary, 96, len(new_payload))
-    struct.pack_into('>Q', binary, 104, len(new_payload))
-    path.write_bytes(binary)
+    """Use the complete original nested-call fixture, modifying a test-only opcode."""
+    create_elf(path, guest_pointer=guest_pointer)
+    if ds_suffix:
+        binary = bytearray(path.read_bytes())
+        # Index 19 is helper's std r4,0(r5). DS form suffix 2/3 is unsupported.
+        offset = 0x1000 + 19 * 4
+        word = struct.unpack_from('>I', binary, offset)[0]
+        struct.pack_into('>I', binary, offset, word | ds_suffix)
+        path.write_bytes(binary)
 
 
 def run_native(cpp, directory):
@@ -91,7 +71,7 @@ class PPUGuestMemoryTests(unittest.TestCase):
         self.assertEqual(result.returncode, 12)
 
     def test_reject_unsupported_ds_update_form(self):
-        guest_program(self.elf, ds_suffix=1)
+        guest_program(self.elf, ds_suffix=2)
         with self.assertRaises(RecompError):
             generate(self.elf)
 
