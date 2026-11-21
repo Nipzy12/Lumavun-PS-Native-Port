@@ -13,7 +13,7 @@ import unittest
 
 ROOT=pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/"tools"))
-from ppu_homebrew import create_elf, words
+from ppu_homebrew import create_elf, words, ori, xori
 from ppu_elf_layout import parse_ppu_image, ElfLayoutError
 from ppu_static_recomp import translate, RecompError
 
@@ -42,6 +42,13 @@ class V085Tests(unittest.TestCase):
         output=self.root/"native.cpp"
         translate(self.elf,output)
         self.assertIn('PPU_IMMEDIATE_CHAIN=',output.read_text())
+
+    def test_powerpc_ori_xori_have_source_rs_and_destination_ra(self):
+        # A PowerPC logical-immediate D-form uses RS in bits 21..25
+        # and destination RA in bits 16..20, unlike ADDI.
+        for word in (ori(21,20,0x1234),xori(21,20,0x5678)):
+            self.assertEqual((word>>21)&31,20)
+            self.assertEqual((word>>16)&31,21)
 
     def test_native_immediate_arithmetic_result(self):
         if not shutil.which("g++"):self.skipTest("Native result also verified in MSVC CTest")
