@@ -69,3 +69,7 @@ The same original PS1 MIPS-I demo now compiles into a lightweight native windowe
 ## V0.8 preflight: PS3 PPU executable analysis
 
 Use `lumavun_ppu_scan.exe <plaintext-PPU-ELF> --report ppu.json` or **Analyze PS3 PPU Code (Read Only)** in the launcher. This tool scans executable PPC64 code in small chunks, counts branch instructions and returns bounded samples of candidate call targets. It rejects ELF-less SELF containers, does not decrypt, and never generates a game executable. [Limitations and test criteria](docs/V0.8-PPU-INVENTORY.md). Gundam Reborn is not yet analyzed or ported.
+
+## V0.8.1 PPC64 ELF -> Windows native proof (homebrew only)
+
+GitHub Actions now builds `LumavunPPUHomebrewPort.exe` from a real, original **ELF64 PowerPC machine-code file** using a strict translator and compiled C++ output. It prints `PPU_HOMEBREW_RESULT=15` when run. The workflow artifact includes `PPU_HOMEBREW.ELF`, generated `LumavunPPUHomebrewPort.cpp`, and the native EXE. This is **not** a PS3 retail game port and the translator refuses unsupported instructions/SELF. See [V0.8.1 documentation](docs/V0.8.1-PPU-RECOMPILATION.md).
