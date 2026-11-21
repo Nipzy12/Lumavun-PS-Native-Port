@@ -48,3 +48,7 @@ The project can now scan a bounded amount of PS3-candidate PPU ELF executable by
 ## V0.8.1 PPC64 native translation proof
 
 A self-authored PowerPC64 ELF demo now undergoes a strict subset of genuine static machine-code-to-C++ translation before the host compiler creates a Windows native executable. A deterministic execution test verifies a numeric result of 15. The source uses a custom **demo-only** syscall ABI and does not support PS3 CellOS, SPU, RSX or Gundam Reborn. All commercial-game build requests remain blocked. See [V0.8.1 PPU recompilation](V0.8.1-PPU-RECOMPILATION.md).
+
+## V0.8.2 checked guest-memory proof
+
+Extended the *original PPC64 demo* static translation with 64-bit/32-bit big-endian loads and stores, byte reads, a deliberately bounded 64 KiB sandbox, alignment and bounds traps. Actual MSVC-compiled homebrew code is tested; retail game builds remain blocked. A mapped PS3 address space, ABI, stack, multiple ELF load segments, CellOS, SPU, RSX, and Gundam Reborn gameplay are **not** implemented. See [V0.8.2 details](V0.8.2-PPU-GUEST-MEMORY.md).
