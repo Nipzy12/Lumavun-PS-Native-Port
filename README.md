@@ -61,3 +61,7 @@ See [V0.5 documentation](docs/V0.5-RECOMPILATION.md).
 ## V0.6 PS2/PS3 feasibility (partial)
 
 After Import Game, click **Analyze PS2/PS3 ELF or SELF**, or use `lumavun_probe.exe <path>` to inspect an ELF, SCE SELF or PS3_GAME folder. A read-only JSON report records ELF segment structure, candidate CPU family, and unavailable runtime components. This is metadata analysis, not native recompilation or proof of Gundam Reborn compatibility. See [V0.6 guide](docs/V0.6-FEASIBILITY.md).
+
+## V0.7 native Win32 graphical host (homebrew only)
+
+The same original PS1 MIPS-I demo now compiles into a lightweight native windowed program: **LumavunPS1MiniPortGui.exe**. Click **Play Recompiled PS1 Graphical Demo** in the launcher. A/D (or arrows) move, Space stays, F5 saves, F9 loads, Escape exits. Uses GDI and Windows keyboard events; no emulator. Limited homebrew demo only, **not** a renderer for PS3 or playable Gundam Reborn. [Technical details](docs/V0.7-NATIVE-RUNTIME.md).
