@@ -19,12 +19,13 @@ def addis(rd, ra, imm):
     return (15 << 26) | (rd << 21) | (ra << 16) | (imm & 0xffff)
 
 
-def ori(rd, ra, imm):
-    return (24 << 26) | (rd << 21) | (ra << 16) | (imm & 0xffff)
+def ori(dest, source, imm):
+    # PPC logical-immediate syntax is rA,rS,UIMM: RA=destination, RS=source.
+    return (24 << 26) | (source << 21) | (dest << 16) | (imm & 0xffff)
 
 
-def xori(rd, ra, imm):
-    return (26 << 26) | (rd << 21) | (ra << 16) | (imm & 0xffff)
+def xori(dest, source, imm):
+    return (26 << 26) | (source << 21) | (dest << 16) | (imm & 0xffff)
 
 
 def add(rd, ra, rb):
