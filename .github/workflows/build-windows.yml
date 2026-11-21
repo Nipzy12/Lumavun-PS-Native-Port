@@ -25,6 +25,8 @@ jobs:
             build/Release/lumavun_port.exe
             build/Release/lumavun_probe.exe
             build/Release/LumavunPS1MiniPort.exe
+            build/Release/LumavunPS1MiniPortGui.exe
+            build/generated/LumavunPS1MiniPortGui.cpp
             build/generated/PS1_MINIGAME.EXE
             build/generated/LumavunPS1MiniPort.cpp
             build/Release/data/compatibility.tsv

@@ -10,7 +10,7 @@ This file is the source of truth for staged development. Every stage must includ
 | V0.4 | Recompiler backend interface, compatibility database, build graph, error codes | Demonstrate dry-run and unsupported titles without claiming successful port | Done: control plane only; no native translator |
 | V0.5 | First reproducible *actual* native recompilation on authorized small PS1 code/game | Original PS-X EXE MIPS mini-game translated into Windows native C++, gameplay self-test | Done: self-authored demo only; commercial games unsupported |
 | V0.6 | PS2 and PS3 backend feasibility | ELF32 MIPS, ELF64 PPU, SPU ELF and SELF structure validation | Partial: header inspector; game-specific function inventory still blocked |
-| V0.7 | Native runtime replacement | Real renderer/input/audio/save APIs required by selected title | Blocked: V0.6 |
+| V0.7 | Native runtime replacement | 2D Win32 GDI + keyboard + save/sound demo on statically translated PS1 homebrew | Partial: original demo only; PS2/PS3 runtimes unavailable |
 | V0.8 | Gundam Reborn vertical slice | Native menu + one playable battle scenario, no emulator | Research target, no guarantee of feasibility |
 | V0.9 | Low-spec optimization | Actual measured FPS, 1% low, memory use and stutter on AMD A4/Radeon R3/4 GB | Blocked: playable game |
 | V1.0 | Verified game-port release | Game boots, plays, saves/loads, audio/input and regression tests pass | Blocked: all preceding gates |
@@ -36,3 +36,7 @@ A self-authored 32-instruction MIPS-I PS-X EXE is generated and statically trans
 ## V0.6 partial implementation
 
 This phase adds a bounded read-only ELF/SELF structure analyzer and machine-readable runtime blocker report. It does not translate PS2/PS3 instructions, enumerate Gundam Reborn functions, decrypt SELF, or provide a native renderer. See [V0.6 feasibility](V0.6-FEASIBILITY.md).
+
+## V0.7 homebrew host milestone
+
+The PS1 demo has a lightweight Win32 GDI graphical host, keyboard controls, user save file with integrity checks, and a Windows system-sound event. It is compiled from the same MIPS-I PS-X EXE as the V0.5 console port. This is NOT a PlayStation hardware graphics/audio runtime, a PS3 renderer, or Gundam Reborn gameplay. See [V0.7 runtime guide](V0.7-NATIVE-RUNTIME.md).

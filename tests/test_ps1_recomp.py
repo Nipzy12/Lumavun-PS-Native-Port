@@ -41,6 +41,20 @@ class NativeRecompTests(unittest.TestCase):
             self.assertIn('RESULT score=2 turns=10',run.stdout)
             self.assertEqual(run.stdout.count('FRAME '),10)
 
+    def test_win32_translation_reuses_compiled_mips_control_flow(self):
+        code=read_psx_exe(self.input)
+        gui=generate_native_cpp(code,'win32')
+        console=generate_native_cpp(code)
+        self.assertIn('wWinMain(',gui)
+        self.assertIn('native_game_win.hpp',gui)
+        self.assertIn('demo_syscall(r, selfTest)',gui)
+        self.assertEqual(gui.count('goto L_'),console.count('goto L_'))
+        self.assertNotIn('decode_mips',gui)
+
+    def test_reject_unknown_native_runtime(self):
+        with self.assertRaises(RecompError):
+            generate_native_cpp(read_psx_exe(self.input),'unsupported-host')
+
     def test_wrong_magic_rejected(self):
         blob=bytearray(self.input.read_bytes());blob[:8]=b'BADMAGIC'
         self.input.write_bytes(blob)
