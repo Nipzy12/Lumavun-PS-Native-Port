@@ -42,3 +42,18 @@ with backends, compatibility, plan, or build. The build command intentionally re
 titles, so no user receives a fake port executable. See [V0.4 guide](docs/V0.4-PIPELINE.md).
 
 **A working game-specific native translator is still missing.** Gundam Reborn remains research-only.
+
+## V0.5: PS1 homebrew static recompilation demonstration
+
+This is the **first actual source-code translation proof**, but only for an original,
+small PS-X EXE / MIPS-I game authored in this repository. CMake generates the PS-X EXE,
+statically translates supported MIPS instructions into native C++, and builds
+`LumavunPS1MiniPort.exe`. Run it directly or click
+**Play Native PS1 Homebrew Demo** in the Windows launcher. Press A/D then Enter;
+collect the star in a ten-turn game.
+
+The compiled native demo is **not** a port of Gundam Reborn, a commercial PS1
+title, or arbitrary ISO files. The custom demonstration syscall ABI is not
+PlayStation BIOS compatibility. Unsupported MIPS instructions fail closed.
+
+See [V0.5 documentation](docs/V0.5-RECOMPILATION.md).
