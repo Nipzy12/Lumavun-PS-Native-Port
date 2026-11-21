@@ -9,7 +9,7 @@ This file is the source of truth for staged development. Every stage must includ
 | V0.3 | Disc image analyzer | ISO9660 2048 & raw 2352 parse, PS1/PS2/PS3 candidate tests, malformed input safe | Done (candidate detection only) |
 | V0.4 | Recompiler backend interface, compatibility database, build graph, error codes | Demonstrate dry-run and unsupported titles without claiming successful port | Done: control plane only; no native translator |
 | V0.5 | First reproducible *actual* native recompilation on authorized small PS1 code/game | Original PS-X EXE MIPS mini-game translated into Windows native C++, gameplay self-test | Done: self-authored demo only; commercial games unsupported |
-| V0.6 | PS2 and PS3 backend feasibility | Game-specific executable/function inventory, graphics/SPU gaps documented | Blocked: lawful test material and toolchain |
+| V0.6 | PS2 and PS3 backend feasibility | ELF32 MIPS, ELF64 PPU, SPU ELF and SELF structure validation | Partial: header inspector; game-specific function inventory still blocked |
 | V0.7 | Native runtime replacement | Real renderer/input/audio/save APIs required by selected title | Blocked: V0.6 |
 | V0.8 | Gundam Reborn vertical slice | Native menu + one playable battle scenario, no emulator | Research target, no guarantee of feasibility |
 | V0.9 | Low-spec optimization | Actual measured FPS, 1% low, memory use and stutter on AMD A4/Radeon R3/4 GB | Blocked: playable game |
@@ -32,3 +32,7 @@ Native pipeline CLI and research-only compatibility database live in src/port_pi
 ## V0.5 evidence
 
 A self-authored 32-instruction MIPS-I PS-X EXE is generated and statically translated to C++ (no runtime MIPS instruction interpreter), then compiled as `LumavunPS1MiniPort.exe`. This is tested with a 10-turn deterministic native gameplay self-test and deliberate rejection of unsupported opcodes. This is **not** an implementation of PlayStation BIOS, GPU, SPU, generic PS1 games, PS2/PS3 or Gundam Reborn; commercial native port work remains unstarted. See [V0.5 documentation](V0.5-RECOMPILATION.md).
+
+## V0.6 partial implementation
+
+This phase adds a bounded read-only ELF/SELF structure analyzer and machine-readable runtime blocker report. It does not translate PS2/PS3 instructions, enumerate Gundam Reborn functions, decrypt SELF, or provide a native renderer. See [V0.6 feasibility](V0.6-FEASIBILITY.md).
