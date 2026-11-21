@@ -55,6 +55,9 @@ set_tests_properties(native_ppu_homebrew PROPERTIES PASS_REGULAR_EXPRESSION "PPU
 add_test(NAME native_ppu_guest_big_endian COMMAND LumavunPPUHomebrewPort)
 set_tests_properties(native_ppu_guest_big_endian PROPERTIES
   PASS_REGULAR_EXPRESSION "PPU_GUEST_BE_BYTES=18,52")
+add_test(NAME native_ppu_nested_stack COMMAND LumavunPPUHomebrewPort)
+set_tests_properties(native_ppu_nested_stack PROPERTIES
+  PASS_REGULAR_EXPRESSION "PPU_STACK_RESTORED=1")
 add_test(NAME ppu_recomp_python_tests
   COMMAND "${Python3_EXECUTABLE}" -m unittest discover
           -s "${CMAKE_CURRENT_SOURCE_DIR}/tests" -p "test_ppu_recomp.py" -v)
