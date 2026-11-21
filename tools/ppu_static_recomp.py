@@ -62,6 +62,16 @@ def classify(word, pc, base, count):
     if op == 14:
         return ('compute', f'r[{rt}] = ' + (f'r[{ra}]' if ra else 'UINT64_C(0)') +
                 f' + static_cast<uint64_t>({imm});')
+    if op == 62 and (word & 3) == 1:
+        # stdu RS,DS(RA): store original RS value at EA, THEN update RA.
+        # The stack-frame backlink is written before the stack pointer changes.
+        if ra == 0:
+            raise RecompError('stdu requires a nonzero base register')
+        disp = signed16(word & 0xfffc)
+        address = f'(r[{ra}] + static_cast<uint64_t>({disp}))'
+        return ('compute',
+                f'if (!guest_store(memory, {address}, 8, r[{rt}])) return 12; '
+                f'r[{ra}] = {address};')
     if op in (32, 34, 36, 58, 62):
         if op in (58, 62) and (word & 3) != 0:
             raise RecompError('Unsupported PPC64 DS-form variant (update or lwa)')
@@ -72,6 +82,14 @@ def classify(word, pc, base, count):
         if op in (32, 34, 58):
             return ('compute', f'if (!guest_load(memory, {address}, {width}, r[{rt}])) return 12;')
         return ('compute', f'if (!guest_store(memory, {address}, {width}, r[{rt}])) return 12;')
+    if op == 31 and (word & 1) == 0 and ((word >> 1) & 1023) in (339, 467):
+        # PowerPC XFX SPR encoding swaps the upper/lower 5-bit halves.
+        encoded_spr = (word >> 11) & 1023
+        spr = ((encoded_spr & 31) << 5) | (encoded_spr >> 5)
+        if spr != 8:
+            raise RecompError('Only LR (SPR 8) moves are supported')
+        xo = (word >> 1) & 1023
+        return ('compute', f'r[{rt}] = lr;' if xo == 339 else f'lr = r[{rt}];')
     if op == 31 and ((word >> 1) & 1023) == 266 and word & 1 == 0:
         return ('compute', f'r[{rt}] = r[{ra}] + r[{rb}];')
     if op == 11 and rt == 0:
@@ -145,6 +163,7 @@ def generate(input_path):
         '#include <cstdint>', '#include <iostream>', '#include <array>',
         GUEST_MEMORY_HELPERS,
         'int main() {', '  GuestRam memory{};', '  uint64_t r[32] = {};',
+        '  r[1] = UINT64_C(0x7000); // demo-specific initial PPC stack pointer',
         '  uint64_t lr = 0;', '  bool eq = false;', '  uint64_t steps = 0;',
         f'  goto L_{entry};',
     ]
@@ -170,7 +189,8 @@ def generate(input_path):
         elif kind == 'hostcall':
             out.append('  std::cout << "PPU_HOMEBREW_RESULT=" << r[3] << "\\n";')
             out.append('  std::cout << "PPU_GUEST_BE_BYTES=" << r[10] << "," << r[11] << "\\n";')
-            out.append('  return (r[3]==15 && r[6]==15 && r[7]==15 && r[10]==18 && r[11]==52) ? 0 : 7;')
+            out.append(f'  std::cout << "PPU_STACK_RESTORED=" << (r[1] == UINT64_C(0x7000) && lr == UINT64_C({base + 12})) << "\\n";')
+            out.append(f'  return (r[3]==15 && r[6]==15 && r[7]==15 && r[10]==18 && r[11]==52 && r[1] == UINT64_C(0x7000) && lr == UINT64_C({base + 12})) ? 0 : 7;')
         out.append('}')
     out.append('}')
     return '\n'.join(out) + '\n'
