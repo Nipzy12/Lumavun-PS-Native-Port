@@ -77,3 +77,12 @@ GitHub Actions now builds `LumavunPPUHomebrewPort.exe` from a real, original **E
 ## V0.8.2: checked PPC64 guest-memory instructions (homebrew demo only)
 
 The native PPC64 demo now performs actual `std/ld/stw/lwz/lbz` operations in a **64 KiB simulated big-endian guest RAM** and prints `PPU_GUEST_BE_BYTES=18,52` alongside `PPU_HOMEBREW_RESULT=15`. Invalid guest addresses and alignment are rejected with a defined exit code. The Windows CI tests the safe path and native memory traps. There is still **no** retail PS3 memory mapping, CellOS, SPU, RSX, game recompilation, or playable Gundam Reborn. See [V0.8.2 guest memory](docs/V0.8.2-PPU-GUEST-MEMORY.md).
+
+## V0.8.3: nested PPC64 calls and guest stack (homebrew-only)
+
+The original PowerPC64 ELF now uses two levels of `bl` calls, `mflr/mtlr`, and
+`stdu` guest stack frames with big-endian backchains. The native executable
+verifies its two frames and LR were restored by printing `PPU_STACK_RESTORED=1`.
+Out-of-bounds/misaligned guest stacks return exit code 12. The generic game
+port command is still blocked; this is not PS3 CellOS, ELF relocations or
+Gundam Reborn. [Technical notes](docs/V0.8.3-PPU-STACK.md).
