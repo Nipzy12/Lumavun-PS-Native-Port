@@ -9,11 +9,12 @@
 #include <string>
 #include "preset.hpp"
 #include "inspector.hpp"
+#include "console_elf.hpp"
 #include <commdlg.h>
 #include <shlobj.h>
 namespace fs=std::filesystem;
 namespace {
-constexpr int BTN_SCAN=101, BTN_SAVE=102, BTN_PLAY=103, BTN_FILE=104, BTN_FOLDER=105, BTN_REPORT=106, BTN_DEMO=107;
+constexpr int BTN_SCAN=101, BTN_SAVE=102, BTN_PLAY=103, BTN_FILE=104, BTN_FOLDER=105, BTN_REPORT=106, BTN_DEMO=107, BTN_FEASIBILITY=108;
 HWND root=nullptr,info=nullptr,label=nullptr,status=nullptr,playBtn=nullptr;
 HWND resolution=nullptr,scale=nullptr,fps=nullptr,fullscreen=nullptr,importInfo=nullptr;
 lumavun::Inspection imported;bool hasImport=false;
@@ -172,7 +173,7 @@ void importFile(){
   std::array<wchar_t,32768> p{};
   OPENFILENAMEW d{};d.lStructSize=sizeof(d);d.hwndOwner=root;
   d.lpstrFile=p.data();d.nMaxFile=static_cast<DWORD>(p.size());
-  d.lpstrFilter=L"Games\0*.iso;*.bin;*.cue;*.elf;*.pkg;*.img;*.exe\0All files\0*.*\0";
+  d.lpstrFilter=L"Games\0*.iso;*.bin;*.cue;*.elf;*.pkg;*.img;*.exe;*.self;*.sprx\0All files\0*.*\0";
   d.Flags=OFN_FILEMUSTEXIST|OFN_PATHMUSTEXIST|OFN_EXPLORER;
   if(GetOpenFileNameW(&d))importedPath(fs::path(p.data()));
 }
@@ -196,6 +197,32 @@ void saveImport(){
   f<<lumavun::toJson(imported);f.flush();
   MessageBoxW(root,f.good()?L"Saved inspection report. No native port was created.":
     L"Report save failed.",L"LUMAVUN",MB_OK);
+}
+
+void analyzeConsoleBinary(){
+  if(!hasImport){
+    MessageBoxW(root,L"Import a game file or PS3_GAME folder first, then click Analyze.",
+      L"LUMAVUN",MB_OK|MB_ICONINFORMATION);
+    return;
+  }
+  const auto result=lumavun::feasibility::probe(imported.path);
+  std::wstring message=L"Binary analysis: "+wide(result.status)+L"\r\n"+
+    wide(result.platform)+L" | "+wide(result.architecture)+L"\r\n"+
+    L"Load segments: "+std::to_wstring(result.segments.size())+
+    L"\r\nNative PC game port: NOT AVAILABLE.";
+  const fs::path path=configPath().parent_path()/L"feasibility-report.json";
+  std::error_code ec;
+  fs::create_directories(path.parent_path(),ec);
+  if(!ec) {
+    std::ofstream file(path,std::ios::binary|std::ios::trunc);
+    file<<lumavun::feasibility::json(result);
+    file.flush();
+    if(file.good())message+=L"\r\nReport saved to LocalAppData.";
+    else message+=L"\r\nCould not save report.";
+  } else message+=L"\r\nCould not create report folder.";
+  set(importInfo,L"V0.6 "+wide(result.status)+L" | "+wide(result.platform)+
+      L"\r\n"+wide(result.detail));
+  MessageBoxW(root,message.c_str(),L"LUMAVUN Binary Feasibility",MB_OK|MB_ICONINFORMATION);
 }
 
 void launchPs1Demo(){
@@ -225,7 +252,7 @@ void launchPs1Demo(){
 LRESULT CALLBACK wndProc(HWND h,UINT message,WPARAM w,LPARAM l){
   if(message==WM_CREATE){
     root=h;
-    control(L"STATIC",L"LUMAVUN PS Native | Homebrew Recompiler Demo v0.5",0,24,18,620,30);
+    control(L"STATIC",L"LUMAVUN PS Native | Binary Feasibility v0.6",0,24,18,620,30);
     info=control(L"STATIC",L"Detecting...",0,24,56,645,78);
     label=control(L"STATIC",L"",0,24,145,630,28);
     control(L"STATIC",L"Resolution",0,24,210,230,22);
@@ -246,6 +273,7 @@ LRESULT CALLBACK wndProc(HWND h,UINT message,WPARAM w,LPARAM l){
     control(L"BUTTON",L"Save Report",WS_TABSTOP,445,555,190,38,BTN_REPORT);
     importInfo=control(L"STATIC",L"No game imported. Real-game recompilation is not available.",0,24,610,670,55);
     control(L"BUTTON",L"Play Native PS1 Homebrew Demo",WS_TABSTOP,24,678,400,36,BTN_DEMO);
+    control(L"BUTTON",L"Analyze PS2/PS3 ELF or SELF",WS_TABSTOP,24,725,400,36,BTN_FEASIBILITY);
     refresh();return 0;
   }
   if(message==WM_COMMAND){
@@ -259,6 +287,7 @@ LRESULT CALLBACK wndProc(HWND h,UINT message,WPARAM w,LPARAM l){
       case BTN_FOLDER:importFolder();return 0;
       case BTN_REPORT:saveImport();return 0;
       case BTN_DEMO:launchPs1Demo();return 0;
+      case BTN_FEASIBILITY:analyzeConsoleBinary();return 0;
     }
   }
   if(message==WM_DESTROY){PostQuitMessage(0);return 0;}
@@ -272,7 +301,7 @@ int WINAPI wWinMain(HINSTANCE instance,HINSTANCE,LPWSTR,int show){
   wc.hCursor=LoadCursorW(nullptr,IDC_ARROW);
   if(!RegisterClassW(&wc))return 1;
   HWND h=CreateWindowW(wc.lpszClassName,L"LUMAVUN PS Native Port",WS_OVERLAPPEDWINDOW,
-    CW_USEDEFAULT,CW_USEDEFAULT,710,790,nullptr,nullptr,instance,nullptr);
+    CW_USEDEFAULT,CW_USEDEFAULT,710,850,nullptr,nullptr,instance,nullptr);
   if(!h)return 2;
   ShowWindow(h,show);UpdateWindow(h);
   MSG msg{};while(GetMessageW(&msg,nullptr,0,0)>0){TranslateMessage(&msg);DispatchMessageW(&msg);}
