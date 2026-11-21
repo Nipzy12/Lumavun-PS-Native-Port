@@ -73,3 +73,7 @@ Use `lumavun_ppu_scan.exe <plaintext-PPU-ELF> --report ppu.json` or **Analyze PS
 ## V0.8.1 PPC64 ELF -> Windows native proof (homebrew only)
 
 GitHub Actions now builds `LumavunPPUHomebrewPort.exe` from a real, original **ELF64 PowerPC machine-code file** using a strict translator and compiled C++ output. It prints `PPU_HOMEBREW_RESULT=15` when run. The workflow artifact includes `PPU_HOMEBREW.ELF`, generated `LumavunPPUHomebrewPort.cpp`, and the native EXE. This is **not** a PS3 retail game port and the translator refuses unsupported instructions/SELF. See [V0.8.1 documentation](docs/V0.8.1-PPU-RECOMPILATION.md).
+
+## V0.8.2: checked PPC64 guest-memory instructions (homebrew demo only)
+
+The native PPC64 demo now performs actual `std/ld/stw/lwz/lbz` operations in a **64 KiB simulated big-endian guest RAM** and prints `PPU_GUEST_BE_BYTES=18,52` alongside `PPU_HOMEBREW_RESULT=15`. Invalid guest addresses and alignment are rejected with a defined exit code. The Windows CI tests the safe path and native memory traps. There is still **no** retail PS3 memory mapping, CellOS, SPU, RSX, game recompilation, or playable Gundam Reborn. See [V0.8.2 guest memory](docs/V0.8.2-PPU-GUEST-MEMORY.md).
