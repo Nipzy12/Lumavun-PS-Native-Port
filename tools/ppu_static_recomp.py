@@ -152,7 +152,6 @@ def generate(input_path):
         'int main() {', '  GuestRam memory{};', '  uint64_t r[32] = {};',
         '  r[1] = UINT64_C(0x7000); // demo-specific initial PPC stack pointer',
         '  uint64_t lr = 0;', '  bool eq = false;', '  uint64_t steps = 0;',
-        f'  goto L_{entry};',
     ]
     # All ELF data segments are validated as mapped to the fictional sandbox.
     # Filesz bytes are initialized; the remaining memsz-filesz bytes stay zero.
@@ -166,6 +165,7 @@ def generate(input_path):
         out.append(
             f'  if (!guest_store(memory, UINT64_C({relocation.virtual_address}), '
             f'8, UINT64_C({relocation.value}))) return 12;')
+    out.append(f'  goto L_{entry};')
     for index, (kind, arg) in enumerate(decoded):
         out.append(f'L_{index}: {{')
         out.append('  if (++steps > UINT64_C(1000000)) return 10;')
