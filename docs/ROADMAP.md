@@ -61,3 +61,7 @@ nested calls with guest 32-byte stack frames and verifies stack/LR restoration
 from native Windows output. Unsupported SPRs and invalid stack accesses are
 rejected. This is not an implementation of PS3 PPU ABI, real-game relocations,
 SPU/RSX/CellOS or playable Gundam Reborn. See [V0.8.3](V0.8.3-PPU-STACK.md).
+
+## V0.8.4 multi-segment ELF and relocation proof
+
+The original PPC64 demo now uses separate executable and data PT_LOAD mappings, zero-initialized BSS, and a symbol-free `R_PPC64_RELATIVE` RELA record. Strict ELF validation is applied before generating C++ native code. Tests verify that a relocated pointer actually works in the compiled Windows program, and that malformed or unsupported relocation inputs are rejected. This **does not** support arbitrary PS3 binaries, encrypted EBOOTs, external imports, SPU/RSX/CellOS or playable Gundam Reborn. See [V0.8.4 details](V0.8.4-ELF-RELOCATIONS.md).
