@@ -1,4 +1,5 @@
 #pragma once
+#include "disc_image.hpp"
 #include <algorithm>
 #include <array>
 #include <cctype>
@@ -55,8 +56,11 @@ inline Inspection inspect(const fs::path& p) {
     r.status="NEEDS_ELF";r.detail="Encrypted EBOOT filename alone is not a decrypted ELF.";}
   else if(ext==".cue"){r.platform="PS1 candidate";r.format="CUE";
     r.status="NEEDS_DISC_VERIFICATION";r.detail="Track images and console type not yet verified.";}
-  else if(ext==".iso"||ext==".bin"||ext==".img"){r.format="Disc image";
-    r.status="NEEDS_DISC_PARSER";r.detail="Disc filesystem parsing not implemented.";}
+  else if(ext==".iso"||ext==".bin"||ext==".img"){
+    const auto scan=scanDisc(p);
+    r.format=scan.format;r.platform=scan.platform;
+    r.status=scan.iso9660?"REQUIRES_NATIVE_PORT":"NEEDS_DISC_PARSER";
+    r.detail=scan.detail;}
   else if(ext==".pkg"){r.format="Package";r.status="NEEDS_PACKAGE_PARSER";
     r.detail="Package extraction is not implemented.";}
   return r;
