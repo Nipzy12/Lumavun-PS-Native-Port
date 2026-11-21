@@ -11,7 +11,7 @@ This file is the source of truth for staged development. Every stage must includ
 | V0.5 | First reproducible *actual* native recompilation on authorized small PS1 code/game | Original PS-X EXE MIPS mini-game translated into Windows native C++, gameplay self-test | Done: self-authored demo only; commercial games unsupported |
 | V0.6 | PS2 and PS3 backend feasibility | ELF32 MIPS, ELF64 PPU, SPU ELF and SELF structure validation | Partial: header inspector; game-specific function inventory still blocked |
 | V0.7 | Native runtime replacement | 2D Win32 GDI + keyboard + save/sound demo on statically translated PS1 homebrew | Partial: original demo only; PS2/PS3 runtimes unavailable |
-| V0.8 | Gundam Reborn vertical slice | Native menu + one playable battle scenario, no emulator | Preflight started: generic PPU ELF branch inventory; Gundam Reborn not analyzed or playable |
+| V0.8 | Gundam Reborn vertical slice | Native menu + one playable battle scenario, no emulator | Preflight: generic PPU inventory + self-authored PPC64 native translation proof; Gundam Reborn not analyzed or playable |
 | V0.9 | Low-spec optimization | Actual measured FPS, 1% low, memory use and stutter on AMD A4/Radeon R3/4 GB | Blocked: playable game |
 | V1.0 | Verified game-port release | Game boots, plays, saves/loads, audio/input and regression tests pass | Blocked: all preceding gates |
 
@@ -44,3 +44,7 @@ The PS1 demo has a lightweight Win32 GDI graphical host, keyboard controls, user
 ## V0.8 preflight: read-only PPC64 code inventory
 
 The project can now scan a bounded amount of PS3-candidate PPU ELF executable bytes and report branch counts and candidate direct call targets. This is a **static heuristic**, not verified functions, decrypted EBOOT, recompiled PS3 code or playable Gundam Reborn. See [V0.8 PPU inventory](V0.8-PPU-INVENTORY.md). The original V0.8 gameplay acceptance gate remains open.
+
+## V0.8.1 PPC64 native translation proof
+
+A self-authored PowerPC64 ELF demo now undergoes a strict subset of genuine static machine-code-to-C++ translation before the host compiler creates a Windows native executable. A deterministic execution test verifies a numeric result of 15. The source uses a custom **demo-only** syscall ABI and does not support PS3 CellOS, SPU, RSX or Gundam Reborn. All commercial-game build requests remain blocked. See [V0.8.1 PPU recompilation](V0.8.1-PPU-RECOMPILATION.md).
