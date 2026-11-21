@@ -62,6 +62,16 @@ def classify(word, pc, base, count):
     if op == 14:
         return ('compute', f'r[{rt}] = ' + (f'r[{ra}]' if ra else 'UINT64_C(0)') +
                 f' + static_cast<uint64_t>({imm});')
+    if op in (32, 34, 36, 58, 62):
+        if op in (58, 62) and (word & 3) != 0:
+            raise RecompError('Unsupported PPC64 DS-form variant (update or lwa)')
+        displacement = signed16((word & 0xfffc) if op in (58, 62) else (word & 0xffff))
+        base_expr = f'r[{ra}]' if ra else 'UINT64_C(0)'
+        address = f'({base_expr} + static_cast<uint64_t>({displacement}))'
+        width = {32: 4, 34: 1, 36: 4, 58: 8, 62: 8}[op]
+        if op in (32, 34, 58):
+            return ('compute', f'if (!guest_load(memory, {address}, {width}, r[{rt}])) return 12;')
+        return ('compute', f'if (!guest_store(memory, {address}, {width}, r[{rt}])) return 12;')
     if op == 31 and ((word >> 1) & 1023) == 266 and word & 1 == 0:
         return ('compute', f'r[{rt}] = r[{ra}] + r[{rb}];')
     if op == 11 and rt == 0:
@@ -83,6 +93,40 @@ def classify(word, pc, base, count):
     raise RecompError(f'Unsupported PPC64 word 0x{word:08X} at PC 0x{pc:X}')
 
 
+GUEST_MEMORY_HELPERS = r"""
+// Original PPU homebrew has a sandboxed *demo* guest RAM region.
+// This is NOT PS3 CellOS virtual memory or actual PS3 MMIO.
+using GuestRam = std::array<uint8_t, 65536>;
+static constexpr uint64_t guest_base = UINT64_C(0x2000);
+static bool guest_address_valid(uint64_t address, size_t width) {
+    if (width != 1 && width != 4 && width != 8) return false;
+    if ((address % width) != 0 || address < guest_base) return false;
+    const uint64_t offset = address - guest_base;
+    return offset <= 65536 - width;
+}
+static bool guest_load(const GuestRam& memory, uint64_t address,
+                       size_t width, uint64_t& value) {
+    if (!guest_address_valid(address, width)) return false;
+    const size_t offset = static_cast<size_t>(address - guest_base);
+    uint64_t result = 0;
+    for (size_t i=0; i<width; ++i)
+        result = (result << 8) | memory[offset+i]; // PPC big-endian loads
+    value = result;
+    return true;
+}
+static bool guest_store(GuestRam& memory, uint64_t address,
+                        size_t width, uint64_t value) {
+    if (!guest_address_valid(address, width)) return false;
+    const size_t offset = static_cast<size_t>(address - guest_base);
+    for (size_t i=0; i<width; ++i) {
+        memory[offset+width-1-i] = static_cast<uint8_t>(value);
+        value >>= 8;
+    }
+    return true;
+}
+"""
+
+
 def generate(input_path):
     base, entry, words = load_ppu_elf(input_path)
     decoded = []
@@ -98,8 +142,9 @@ def generate(input_path):
         raise RecompError('Demonstration requires at least one PowerPC branch-and-link')
     out = [
         '// Generated from an original PPC64 ELF. Not PS3 CellOS compatible.',
-        '#include <cstdint>', '#include <iostream>',
-        'int main() {', '  uint64_t r[32] = {};',
+        '#include <cstdint>', '#include <iostream>', '#include <array>',
+        GUEST_MEMORY_HELPERS,
+        'int main() {', '  GuestRam memory{};', '  uint64_t r[32] = {};',
         '  uint64_t lr = 0;', '  bool eq = false;', '  uint64_t steps = 0;',
         f'  goto L_{entry};',
     ]
@@ -124,7 +169,8 @@ def generate(input_path):
             out.append('  return 8; // unrecognized link register')
         elif kind == 'hostcall':
             out.append('  std::cout << "PPU_HOMEBREW_RESULT=" << r[3] << "\\n";')
-            out.append('  return r[3] == 15 ? 0 : 7;')
+            out.append('  std::cout << "PPU_GUEST_BE_BYTES=" << r[10] << "," << r[11] << "\\n";')
+            out.append('  return (r[3]==15 && r[6]==15 && r[7]==15 && r[10]==18 && r[11]==52) ? 0 : 7;')
         out.append('}')
     out.append('}')
     return '\n'.join(out) + '\n'

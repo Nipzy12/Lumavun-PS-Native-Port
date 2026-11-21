@@ -18,6 +18,10 @@ def add(rd, ra, rb):
     return (31 << 26) | (rd << 21) | (ra << 16) | (rb << 11) | (266 << 1)
 
 
+def memory_op(opcode, reg, ra, offset):
+    return (opcode << 26) | (reg << 21) | (ra << 16) | (offset & 0xffff)
+
+
 def cmpwi(ra, imm):
     return (11 << 26) | (ra << 16) | (imm & 0xFFFF)
 
@@ -34,9 +38,11 @@ def bl(from_index, target_index):
     return (18 << 26) | (disp & 0x03FFFFFC) | 1
 
 
-def words():
+def words(guest_pointer=0x2000):
+    if not 0 <= guest_pointer <= 0x7fff:
+        raise ValueError('Demo guest pointer must fit positive signed addi immediate')
     # Execute original PPC instructions to calculate 1+2+3+4+5.
-    # Index 2 calls subroutine at 5, index 9 returns to 3, index 4 ends via demo sc.
+    # Index 2 calls the subroutine at 5; the loop at 5-8 then uses mapped guest RAM.
     return [
         addi(3, 0, 0),
         addi(4, 0, 0),
@@ -47,12 +53,22 @@ def words():
         add(4, 4, 3),
         cmpwi(3, 5),
         bc_ne(8, 5),
+        addi(5, 0, guest_pointer),       # demo guest RAM address, not PS3 MMIO
+        memory_op(62, 4, 5, 0),  # std r4,0(r5), 64-bit big-endian store
+        memory_op(58, 6, 5, 0),  # ld r6,0(r5), 64-bit big-endian load
+        memory_op(36, 6, 5, 8),  # stw r6,8(r5), 32-bit big-endian store
+        memory_op(32, 7, 5, 8),  # lwz r7,8(r5), zero-extended 32-bit load
+        addi(4, 7, 0),           # put loaded value back in result register
+        addi(8, 0, 0x1234),
+        memory_op(36, 8, 5, 12), # stw r8,12(r5)
+        memory_op(34, 10, 5, 14),# lbz => 0x12 (18), confirms big-endian byte
+        memory_op(34, 11, 5, 15),# lbz => 0x34 (52)
         0x4E800020,  # blr
     ]
 
 
-def create_elf(path):
-    payload = b''.join(struct.pack('>I', word) for word in words())
+def create_elf(path, guest_pointer=0x2000):
+    payload = b''.join(struct.pack('>I', word) for word in words(guest_pointer))
     if len(payload) > 4096:
         raise ValueError('fixture too large')
     header = bytearray(64)
@@ -71,5 +87,6 @@ def create_elf(path):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('output', type=Path)
+    parser.add_argument('--guest-pointer', type=lambda value: int(value, 0), default=0x2000)
     args = parser.parse_args()
-    print('Generated original PPC64 ELF, words:', create_elf(args.output))
+    print('Generated original PPC64 ELF, words:', create_elf(args.output, args.guest_pointer))
