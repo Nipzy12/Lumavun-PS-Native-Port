@@ -8,7 +8,7 @@ This file is the source of truth for staged development. Every stage must includ
 | V0.2 | Game-file import, basic signatures | Import/report tests | Done |
 | V0.3 | Disc image analyzer | ISO9660 2048 & raw 2352 parse, PS1/PS2/PS3 candidate tests, malformed input safe | Done (candidate detection only) |
 | V0.4 | Recompiler backend interface, compatibility database, build graph, error codes | Demonstrate dry-run and unsupported titles without claiming successful port | Done: control plane only; no native translator |
-| V0.5 | First reproducible *actual* native recompilation on authorized small PS1 code/game | Real translated game code runs as Windows x64 without emulator, gameplay validated | Blocked: choose a feasible source |
+| V0.5 | First reproducible *actual* native recompilation on authorized small PS1 code/game | Original PS-X EXE MIPS mini-game translated into Windows native C++, gameplay self-test | Done: self-authored demo only; commercial games unsupported |
 | V0.6 | PS2 and PS3 backend feasibility | Game-specific executable/function inventory, graphics/SPU gaps documented | Blocked: lawful test material and toolchain |
 | V0.7 | Native runtime replacement | Real renderer/input/audio/save APIs required by selected title | Blocked: V0.6 |
 | V0.8 | Gundam Reborn vertical slice | Native menu + one playable battle scenario, no emulator | Research target, no guarantee of feasibility |
@@ -28,3 +28,7 @@ This file is the source of truth for staged development. Every stage must includ
 ## V0.4 implementation notes
 
 Native pipeline CLI and research-only compatibility database live in src/port_pipeline.hpp, src/port_cli.cpp, and data/compatibility.tsv. The backend contract exists, but no game-specific translator or native runtime is implemented. The build command returns a blocking error until that exists. See [V0.4 contract](V0.4-PIPELINE.md).
+
+## V0.5 evidence
+
+A self-authored 32-instruction MIPS-I PS-X EXE is generated and statically translated to C++ (no runtime MIPS instruction interpreter), then compiled as `LumavunPS1MiniPort.exe`. This is tested with a 10-turn deterministic native gameplay self-test and deliberate rejection of unsupported opcodes. This is **not** an implementation of PlayStation BIOS, GPU, SPU, generic PS1 games, PS2/PS3 or Gundam Reborn; commercial native port work remains unstarted. See [V0.5 documentation](V0.5-RECOMPILATION.md).
