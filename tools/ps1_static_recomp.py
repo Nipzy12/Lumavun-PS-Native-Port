@@ -87,8 +87,18 @@ int main(int argc,char**argv) {
     goto L_ENTRY;
 """
 
-WIN32_RUNTIME=r"""#define UNICODE
+WIN32_RUNTIME=r"""#ifndef UNICODE
+#define UNICODE
+#endif
+#ifndef _UNICODE
 #define _UNICODE
+#endif
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
 #include <windows.h>
 #include <cstdint>
 #include <cwchar>
