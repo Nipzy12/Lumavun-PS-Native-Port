@@ -48,6 +48,18 @@ def classify(word, pc, base, count):
     if op == 14:
         return ('compute', f'r[{rt}] = ' + (f'r[{ra}]' if ra else 'UINT64_C(0)') +
                 f' + static_cast<uint64_t>({imm});')
+    if op == 15:
+        # ADDIS (also LIS with RA=0): signed 16-bit immediate shifted 16.
+        # Use unsigned 64-bit arithmetic after signed scaling for PPC wraparound.
+        shifted = imm * 65536
+        return ('compute', f'r[{rt}] = ' +
+                (f'r[{ra}]' if ra else 'UINT64_C(0)') +
+                f' + static_cast<uint64_t>(INT64_C({shifted}));')
+    if op in (24, 26):
+        # ORI / XORI use unsigned zero-extended 16-bit immediates.
+        uimm = word & 0xffff
+        operator = '|' if op == 24 else '^'
+        return ('compute', f'r[{rt}] = r[{ra}] {operator} UINT64_C({uimm});')
     if op == 62 and (word & 3) == 1:
         # stdu RS,DS(RA): store original RS value at EA, THEN update RA.
         # The stack-frame backlink is written before the stack pointer changes.
@@ -102,11 +114,22 @@ GUEST_MEMORY_HELPERS = r"""
 // This is NOT PS3 CellOS virtual memory or actual PS3 MMIO.
 using GuestRam = std::array<uint8_t, 65536>;
 static constexpr uint64_t guest_base = UINT64_C(0x2000);
+// Two owned runtime regions plus writable ELF PT_LOAD segments.
+// Unmapped holes are inaccessible, even inside the flat storage backing array.
+struct MappedRegion { uint64_t begin; uint64_t end; };
+static constexpr MappedRegion mapped_regions[] = {
+/*REGION_INITIALIZERS*/
+};
 static bool guest_address_valid(uint64_t address, size_t width) {
     if (width != 1 && width != 4 && width != 8) return false;
     if ((address % width) != 0 || address < guest_base) return false;
     const uint64_t offset = address - guest_base;
-    return offset <= 65536 - width;
+    if (offset > 65536 - width) return false;
+    for (const auto& region : mapped_regions) {
+        if (address >= region.begin && address + width <= region.end)
+            return true;
+    }
+    return false;
 }
 static bool guest_load(const GuestRam& memory, uint64_t address,
                        size_t width, uint64_t& value) {
@@ -145,10 +168,22 @@ def generate(input_path):
         raise RecompError('Demo hostcall is required; no output can be produced')
     if not any(kind == 'call' for kind, _ in decoded):
         raise RecompError('Demonstration requires at least one PowerPC branch-and-link')
+    # This demo owns one small scratch area and a bounded stack.
+    # ELF RW segments are separately mapped; code is compiled, not mapped as guest data.
+    regions = [(0x2000, 0x2100), (0x6000, 0x7000)]
+    regions.extend((segment.virtual_address,
+                    segment.virtual_address + segment.memory_size)
+                   for segment in image.data_segments)
+    region_initializers = ',\n'.join(
+        f'    {{ UINT64_C({start}), UINT64_C({end}) }}'
+        for start, end in regions
+    )
+    runtime = GUEST_MEMORY_HELPERS.replace('/*REGION_INITIALIZERS*/',
+                                            region_initializers)
     out = [
         '// Generated from an original PPC64 ELF. Not PS3 CellOS compatible.',
         '#include <cstdint>', '#include <iostream>', '#include <array>',
-        GUEST_MEMORY_HELPERS,
+        runtime,
         'int main() {', '  GuestRam memory{};', '  uint64_t r[32] = {};',
         '  r[1] = UINT64_C(0x7000); // demo-specific initial PPC stack pointer',
         '  uint64_t lr = 0;', '  bool eq = false;', '  uint64_t steps = 0;',
@@ -190,7 +225,8 @@ def generate(input_path):
             out.append('  std::cout << "PPU_GUEST_BE_BYTES=" << r[10] << "," << r[11] << "\\n";')
             out.append(f'  std::cout << "PPU_STACK_RESTORED=" << (r[1] == UINT64_C(0x7000) && lr == UINT64_C({base + 12})) << "\\n";')
             out.append('  std::cout << "PPU_ELF_RELOCATED=" << (r[16] == UINT64_C(0x2000) && r[17] == UINT64_C(15) && r[18] == UINT64_C(171) && r[19] == UINT64_C(0)) << "\\n";')
-            out.append(f'  return (r[3]==15 && r[6]==15 && r[7]==15 && r[10]==18 && r[11]==52 && r[1] == UINT64_C(0x7000) && lr == UINT64_C({base + 12}) && r[16] == UINT64_C(0x2000) && r[17] == UINT64_C(15) && r[18] == UINT64_C(171) && r[19] == UINT64_C(0)) ? 0 : 7;')
+            out.append('  std::cout << "PPU_IMMEDIATE_CHAIN=" << (r[20] == UINT64_C(305419896) && r[21] == UINT64_C(305397760) && r[22] == UINT64_C(305419896)) << "\\n";')
+            out.append(f'  return (r[3]==15 && r[6]==15 && r[7]==15 && r[10]==18 && r[11]==52 && r[1] == UINT64_C(0x7000) && lr == UINT64_C({base + 12}) && r[16] == UINT64_C(0x2000) && r[17] == UINT64_C(15) && r[18] == UINT64_C(171) && r[19] == UINT64_C(0) && r[20] == UINT64_C(305419896) && r[21] == UINT64_C(305397760) && r[22] == UINT64_C(305419896)) ? 0 : 7;')
         out.append('}')
     out.append('}')
     return '\n'.join(out) + '\n'
