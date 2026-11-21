@@ -63,6 +63,21 @@ class V085Tests(unittest.TestCase):
         output=run_native(self.elf,self.root)
         self.assertEqual(output.returncode,12,output.stderr)
 
+    def test_loader_rejects_guest_segment_overlapping_demo_stack(self):
+        blob=bytearray(self.elf.read_bytes())
+        # RW PT_LOAD virtual address at PHDR #1 (file offset 120 + 16).
+        struct.pack_into(">Q",blob,120+16,0x6000)
+        self.elf.write_bytes(blob)
+        with self.assertRaises(ElfLayoutError):
+            parse_ppu_image(self.elf)
+
+    def test_loader_rejects_guest_segment_overlapping_demo_scratch(self):
+        blob=bytearray(self.elf.read_bytes())
+        struct.pack_into(">Q",blob,120+16,0x2000)
+        self.elf.write_bytes(blob)
+        with self.assertRaises(ElfLayoutError):
+            parse_ppu_image(self.elf)
+
     def test_dynamic_symbols_explicitly_rejected(self):
         blob=bytearray(self.elf.read_bytes())
         # The existing RELA section is replaced with a fake SHT_DYNSYM to
