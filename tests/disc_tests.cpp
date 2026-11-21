@@ -1,11 +1,12 @@
 #include "disc_image.hpp"
 #include <algorithm>
-#include <cassert>
+#include <stdexcept>
 #include <chrono>
 #include <cstdint>
 #include <fstream>
 #include <iostream>
 #include <vector>
+static void check(bool ok){if(!ok)throw std::runtime_error("test assertion failed");}
 namespace fs=std::filesystem;
 static void put32(std::vector<unsigned char>& b,std::size_t p,std::uint32_t x){
   for(int i=0;i<4;++i)b[p+i]=static_cast<unsigned char>(x>>(8*i));
@@ -13,7 +14,7 @@ static void put32(std::vector<unsigned char>& b,std::size_t p,std::uint32_t x){
 static void record(std::vector<unsigned char>& b,std::size_t p,
                    const std::string& name,std::uint32_t lba,std::uint32_t length,bool folder=false){
   const std::size_t n=33+name.size()+(name.size()%2==0);
-  assert(n<=255);
+  check(n<=255);
   b[p]=static_cast<unsigned char>(n);put32(b,p+2,lba);put32(b,p+10,length);
   b[p+25]=folder?2:0;b[p+32]=static_cast<unsigned char>(name.size());
   std::copy(name.begin(),name.end(),b.begin()+p+33);
@@ -42,13 +43,13 @@ int main(){
   fixture(dir/"ps2.iso","PS2",false);
   fixture(dir/"ps3.iso","PS3",false);
   fixture(dir/"raw.bin","PS2",true);
-  assert(lumavun::scanDisc(dir/"ps1.iso").platform=="PS1 candidate");
-  assert(lumavun::scanDisc(dir/"ps2.iso").platform=="PS2 candidate");
-  assert(lumavun::scanDisc(dir/"ps3.iso").platform=="PS3 candidate");
-  assert(lumavun::scanDisc(dir/"raw.bin").platform=="PS2 candidate");
+  check(lumavun::scanDisc(dir/"ps1.iso").platform=="PS1 candidate");
+  check(lumavun::scanDisc(dir/"ps2.iso").platform=="PS2 candidate");
+  check(lumavun::scanDisc(dir/"ps3.iso").platform=="PS3 candidate");
+  check(lumavun::scanDisc(dir/"raw.bin").platform=="PS2 candidate");
   std::ofstream(dir/"truncated.iso").put('x');
-  assert(!lumavun::scanDisc(dir/"truncated.iso").iso9660);
-  assert(!lumavun::scanDisc(dir/"missing.iso").iso9660);
+  check(!lumavun::scanDisc(dir/"truncated.iso").iso9660);
+  check(!lumavun::scanDisc(dir/"missing.iso").iso9660);
   fs::remove_all(dir);
   std::cout<<"6 ISO checks passed\n";
 }
