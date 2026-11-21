@@ -22,6 +22,22 @@ def memory_op(opcode, reg, ra, offset):
     return (opcode << 26) | (reg << 21) | (ra << 16) | (offset & 0xffff)
 
 
+def mflr(reg):
+    # mfspr reg,LR (SPR 8)
+    return (31 << 26) | (reg << 21) | (8 << 16) | (339 << 1)
+
+
+def mtlr(reg):
+    # mtspr LR,reg
+    return (31 << 26) | (reg << 21) | (8 << 16) | (467 << 1)
+
+
+def stdu(reg, ra, offset):
+    if ra == 0 or offset % 4:
+        raise ValueError('stdu requires nonzero RA and 4-byte DS displacement')
+    return (62 << 26) | (reg << 21) | (ra << 16) | (offset & 0xfffc) | 1
+
+
 def cmpwi(ra, imm):
     return (11 << 26) | (ra << 16) | (imm & 0xFFFF)
 
@@ -41,29 +57,39 @@ def bl(from_index, target_index):
 def words(guest_pointer=0x2000):
     if not 0 <= guest_pointer <= 0x7fff:
         raise ValueError('Demo guest pointer must fit positive signed addi immediate')
-    # Execute original PPC instructions to calculate 1+2+3+4+5.
-    # Index 2 calls the subroutine at 5; the loop at 5-8 then uses mapped guest RAM.
+    # Main calls worker at 5. Worker saves LR + stack frame before calling
+    # nested memory helper at 17; both frames are restored before hostcall.
     return [
-        addi(3, 0, 0),
-        addi(4, 0, 0),
-        bl(2, 5),
-        addi(3, 4, 0),
-        0x44000002,  # custom demo-only syscall; not PS3 CellOS
-        addi(3, 3, 1),
-        add(4, 4, 3),
-        cmpwi(3, 5),
-        bc_ne(8, 5),
-        addi(5, 0, guest_pointer),       # demo guest RAM address, not PS3 MMIO
-        memory_op(62, 4, 5, 0),  # std r4,0(r5), 64-bit big-endian store
-        memory_op(58, 6, 5, 0),  # ld r6,0(r5), 64-bit big-endian load
-        memory_op(36, 6, 5, 8),  # stw r6,8(r5), 32-bit big-endian store
-        memory_op(32, 7, 5, 8),  # lwz r7,8(r5), zero-extended 32-bit load
-        addi(4, 7, 0),           # put loaded value back in result register
-        addi(8, 0, 0x1234),
-        memory_op(36, 8, 5, 12), # stw r8,12(r5)
-        memory_op(34, 10, 5, 14),# lbz => 0x12 (18), confirms big-endian byte
-        memory_op(34, 11, 5, 15),# lbz => 0x34 (52)
-        0x4E800020,  # blr
+        addi(3, 0, 0),        # 0: result
+        addi(4, 0, 0),        # 1: accumulator
+        bl(2, 5),            # 2: main -> worker
+        addi(3, 4, 0),       # 3: copy result
+        0x44000002,          # 4: custom homebrew hostcall, NOT CellOS
+        mflr(12),            # 5: worker saves return from main
+        stdu(1, 1, -32),     # 6: allocate PPC64 stack frame
+        memory_op(62, 12, 1, 16), # 7: std saved LR
+        addi(3, 3, 1),       # 8: loop
+        add(4, 4, 3),        # 9
+        cmpwi(3, 5),         # 10
+        bc_ne(11, 8),        # 11
+        bl(12, 17),          # 12: nested function call replaces LR
+        memory_op(58, 12, 1, 16), # 13: ld previous return address
+        mtlr(12),            # 14: restore LR before worker return
+        memory_op(58, 1, 1, 0),  # 15: restore SP using stack backlink
+        0x4E800020,          # 16: blr to main
+        stdu(1, 1, -32),     # 17: nested helper creates its own frame
+        addi(5, 0, guest_pointer),  # 18: data region; not PS3 MMIO
+        memory_op(62, 4, 5, 0),   # 19: std value
+        memory_op(58, 6, 5, 0),   # 20: ld value
+        memory_op(36, 6, 5, 8),   # 21: stw value
+        memory_op(32, 7, 5, 8),   # 22: lwz value
+        addi(4, 7, 0),            # 23: restored result
+        addi(8, 0, 0x1234),       # 24
+        memory_op(36, 8, 5, 12),  # 25
+        memory_op(34, 10, 5, 14), # 26: big-endian byte 0x12
+        memory_op(34, 11, 5, 15), # 27: big-endian byte 0x34
+        memory_op(58, 1, 1, 0),   # 28: release nested frame
+        0x4E800020,               # 29: blr to worker
     ]
 
 
