@@ -59,7 +59,7 @@ def classify(word, pc, base, count):
         # ORI / XORI use unsigned zero-extended 16-bit immediates.
         uimm = word & 0xffff
         operator = '|' if op == 24 else '^'
-        return ('compute', f'r[{rt}] = r[{ra}] {operator} UINT64_C({uimm});')
+        return ('compute', f'r[{ra}] = r[{rt}] {operator} UINT64_C({uimm});')
     if op == 62 and (word & 3) == 1:
         # stdu RS,DS(RA): store original RS value at EA, THEN update RA.
         # The stack-frame backlink is written before the stack pointer changes.
