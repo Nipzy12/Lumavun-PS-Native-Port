@@ -102,7 +102,7 @@ int WINAPI wWinMain(HINSTANCE app, HINSTANCE, LPWSTR args, int show) {
     goto L_ENTRY;
 """
 
-def generate_native_cpp(code:Code,target:str='console')->str:
+def generate_native_cpp(code:Code,runtime_kind:str='console')->str:
     words=code.words
     entry=(code.entry-code.load_address)//4
     delay_indices=set()
@@ -123,9 +123,9 @@ def generate_native_cpp(code:Code,target:str='console')->str:
             fmt_instruction(word)  # validate full image, fail closed
     if entry in delay_indices or any(t in delay_indices for t in jumps.values()):
         raise RecompError('Cannot jump into delay slot')
-    if target not in ('console','win32'):
+    if runtime_kind not in ('console','win32'):
         raise RecompError('Unknown native runtime target')
-    template=RUNTIME if target=='console' else WIN32_RUNTIME
+    template=RUNTIME if runtime_kind=='console' else WIN32_RUNTIME
     lines=[template.replace('L_ENTRY',f'L_{entry}')]
     for i,word in enumerate(words):
         if i in delay_indices:continue
