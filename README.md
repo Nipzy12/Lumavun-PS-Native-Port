@@ -57,3 +57,7 @@ title, or arbitrary ISO files. The custom demonstration syscall ABI is not
 PlayStation BIOS compatibility. Unsupported MIPS instructions fail closed.
 
 See [V0.5 documentation](docs/V0.5-RECOMPILATION.md).
+
+## V0.6 PS2/PS3 feasibility (partial)
+
+After Import Game, click **Analyze PS2/PS3 ELF or SELF**, or use `lumavun_probe.exe <path>` to inspect an ELF, SCE SELF or PS3_GAME folder. A read-only JSON report records ELF segment structure, candidate CPU family, and unavailable runtime components. This is metadata analysis, not native recompilation or proof of Gundam Reborn compatibility. See [V0.6 guide](docs/V0.6-FEASIBILITY.md).
