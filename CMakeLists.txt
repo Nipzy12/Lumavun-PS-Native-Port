@@ -61,6 +61,9 @@ add_test(NAME ppu_recomp_python_tests
 add_test(NAME ppu_memory_python_tests
   COMMAND "${Python3_EXECUTABLE}" -m unittest discover
           -s "${CMAKE_CURRENT_SOURCE_DIR}/tests" -p "test_ppu_memory.py" -v)
+add_test(NAME ppu_stack_python_tests
+  COMMAND "${Python3_EXECUTABLE}" -m unittest discover
+          -s "${CMAKE_CURRENT_SOURCE_DIR}/tests" -p "test_ppu_stack.py" -v)
 
 set(PS1_DEMO_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated")
 set(PS1_DEMO_INPUT "${PS1_DEMO_DIR}/PS1_MINIGAME.EXE")
