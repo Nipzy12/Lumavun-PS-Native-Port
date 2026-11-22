@@ -56,6 +56,23 @@ def cmpwi(ra, imm):
     return (11 << 26) | (ra << 16) | (imm & 0xFFFF)
 
 
+def cmplwi(ra, imm):
+    # CMPLI CR0,L=0 (word), rA, unsigned immediate.
+    if not 0 <= imm <= 0xffff:
+        raise ValueError('CMPLWI immediate out of range')
+    return (10 << 26) | (ra << 16) | imm
+
+
+def bc_cr(bo, bi, from_index, target_index):
+    # CR0 LT/GT/EQ only; BO=12 true or BO=4 false. No CTR or link.
+    if bo not in (4, 12) or bi not in (0, 1, 2):
+        raise ValueError('Only CR0 LT/GT/EQ branch options are supported')
+    disp=(target_index-from_index)*4
+    if not (-32768 <= disp <= 32764):
+        raise ValueError('conditional branch target out of range')
+    return (16 << 26) | (bo << 21) | (bi << 16) | (disp & 0xfffc)
+
+
 def bc_ne(from_index, target_index):
     disp = (target_index - from_index) * 4
     if not (-32768 <= disp <= 32764):
@@ -114,7 +131,20 @@ def words(guest_pointer=0x2000):
         xori(21, 20, 0x5678),    # 37: 0x12340000
         memory_op(36, 20, 16, 24), # 38: stw immediate result into mapped scratch
         memory_op(32, 22, 16, 24), # 39: lwz round-trip from scratch
-        0x4E800020,               # 40: blr to worker
+        addi(23, 0, -1),          # 40: word low 32 bits = 0xffffffff
+        cmpwi(23, 0),            # 41: signed word -1 < 0 => CR0 LT
+        bc_cr(12, 0, 42, 44),    # 42: BLT taken
+        ori(24, 24, 1),          # 43: skipped, otherwise failure marker
+        cmplwi(23, 0),           # 44: unsigned word 0xffffffff > 0 => GT
+        bc_cr(12, 1, 45, 47),    # 45: BGT taken
+        ori(24, 24, 2),          # 46: skipped
+        cmpwi(19, 0),            # 47: BSS byte=0 => EQ
+        bc_cr(12, 2, 48, 50),    # 48: BEQ taken
+        ori(24, 24, 4),          # 49: skipped
+        cmpwi(23, 0),            # 50: -1 != 0 => LT, EQ false
+        bc_cr(4, 2, 51, 53),     # 51: BNE taken
+        ori(24, 24, 8),          # 52: skipped
+        0x4E800020,              # 53: blr to worker
     ]
 
 

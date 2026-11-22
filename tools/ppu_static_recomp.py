@@ -90,13 +90,25 @@ def classify(word, pc, base, count):
         return ('compute', f'r[{rt}] = lr;' if xo == 339 else f'lr = r[{rt}];')
     if op == 31 and ((word >> 1) & 1023) == 266 and word & 1 == 0:
         return ('compute', f'r[{rt}] = r[{ra}] + r[{rb}];')
-    if op == 11 and rt == 0:
-        return ('compute', f'eq = (static_cast<int32_t>(static_cast<uint32_t>(r[{ra}])) == {imm});')
-    if op == 16 and rt == 4 and ra == 2 and word & 1 == 0:
+    if op in (10, 11):
+        # This homebrew translator accepts only CR0 comparisons in word mode.
+        # CR0 encodes LT=8, GT=4, EQ=2; summary overflow is not modeled.
+        if rt != 0:
+            raise RecompError('Only CR0 word comparisons (L=0) are supported')
+        if op == 11:
+            lhs=f'static_cast<int32_t>(static_cast<uint32_t>(r[{ra}]))'
+            rhs=f'static_cast<int32_t>({imm})'
+        else:
+            lhs=f'static_cast<uint32_t>(r[{ra}])'
+            rhs=f'UINT32_C({word & 0xffff})'
+        return ('compute',
+                f'cr0 = ({lhs} < {rhs}) ? 8u : '
+                f'(({lhs} > {rhs}) ? 4u : 2u);')
+    if op == 16 and rt in (4, 12) and ra in (0, 1, 2) and word & 1 == 0:
         target = branch_target(word, pc, True)
         if not base <= target < base + 4 * count or target % 4:
             raise RecompError('Conditional branch target outside executable segment')
-        return ('conditional', (target - base) // 4)
+        return ('conditional', ((target-base)//4, rt==12, (8, 4, 2)[ra]))
     if op == 18:
         target = branch_target(word, pc, False)
         if not base <= target < base + 4 * count or target % 4:
@@ -186,7 +198,7 @@ def generate(input_path):
         runtime,
         'int main() {', '  GuestRam memory{};', '  uint64_t r[32] = {};',
         '  r[1] = UINT64_C(0x7000); // demo-specific initial PPC stack pointer',
-        '  uint64_t lr = 0;', '  bool eq = false;', '  uint64_t steps = 0;',
+        '  uint64_t lr = 0;', '  uint8_t cr0 = 0;', '  uint64_t steps = 0;',
     ]
     # All ELF data segments are validated as mapped to the fictional sandbox.
     # Filesz bytes are initialized; the remaining memsz-filesz bytes stay zero.
@@ -209,7 +221,9 @@ def generate(input_path):
             out.append(f'  {arg}')
             out.append(f'  {continuation}')
         elif kind == 'conditional':
-            out.append(f'  if (!eq) goto L_{arg};')
+            target, want_set, mask = arg
+            polarity='true' if want_set else 'false'
+            out.append(f'  if (((cr0 & {mask}u) != 0) == {polarity}) goto L_{target};')
             out.append(f'  {continuation}')
         elif kind == 'branch':
             out.append(f'  goto L_{arg};')
@@ -226,7 +240,8 @@ def generate(input_path):
             out.append(f'  std::cout << "PPU_STACK_RESTORED=" << (r[1] == UINT64_C(0x7000) && lr == UINT64_C({base + 12})) << "\\n";')
             out.append('  std::cout << "PPU_ELF_RELOCATED=" << (r[16] == UINT64_C(0x2000) && r[17] == UINT64_C(15) && r[18] == UINT64_C(171) && r[19] == UINT64_C(0)) << "\\n";')
             out.append('  std::cout << "PPU_IMMEDIATE_CHAIN=" << (r[20] == UINT64_C(305419896) && r[21] == UINT64_C(305397760) && r[22] == UINT64_C(305419896)) << "\\n";')
-            out.append(f'  return (r[3]==15 && r[6]==15 && r[7]==15 && r[10]==18 && r[11]==52 && r[1] == UINT64_C(0x7000) && lr == UINT64_C({base + 12}) && r[16] == UINT64_C(0x2000) && r[17] == UINT64_C(15) && r[18] == UINT64_C(171) && r[19] == UINT64_C(0) && r[20] == UINT64_C(305419896) && r[21] == UINT64_C(305397760) && r[22] == UINT64_C(305419896)) ? 0 : 7;')
+            out.append('  std::cout << "PPU_CR0_BRANCHES=" << (r[23] == ~UINT64_C(0) && r[24] == UINT64_C(0) && cr0 == 8u) << "\\n";')
+            out.append(f'  return (r[3]==15 && r[6]==15 && r[7]==15 && r[10]==18 && r[11]==52 && r[1] == UINT64_C(0x7000) && lr == UINT64_C({base + 12}) && r[16] == UINT64_C(0x2000) && r[17] == UINT64_C(15) && r[18] == UINT64_C(171) && r[19] == UINT64_C(0) && r[20] == UINT64_C(305419896) && r[21] == UINT64_C(305397760) && r[22] == UINT64_C(305419896) && r[23] == ~UINT64_C(0) && r[24] == UINT64_C(0) && cr0 == 8u) ? 0 : 7;')
         out.append('}')
     out.append('}')
     return '\n'.join(out) + '\n'

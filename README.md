@@ -94,3 +94,7 @@ Our self-authored PPC64 homebrew ELF now has separate executable and initialized
 ## V0.8.5: stricter PPC64 guest memory and three immediate operations
 
 The **original PPC64 ELF** now uses real `addis / ori / xori` instructions, stores the result via PPC memory operations, and reports `PPU_IMMEDIATE_CHAIN=1`. Runtime memory accesses are restricted to separate demo scratch, validated ELF RW data/BSS, and stack regions instead of any address inside the 64-KiB backing array. Invalid memory holes and addresses at region ends must return exit code 12. ELF dynamic symbol/dependency sections are explicitly rejected because no import resolver exists. This is **not** a functional PS3 game port. [V0.8.5 implementation](docs/V0.8.5-PPU-MEMORY-OPS.md).
+
+## V0.8.6: PPC64 CR0 conditions and ELF dependency inventory
+
+The original self-authored PowerPC64 ELF now executes signed CMPWI, unsigned CMPLWI, and CR0 LT/GT/EQ branches as statically translated C++ control flow. Native output includes `PPU_CR0_BRANCHES=1`. A separate, bounded **read-only** script `tools/ppu_dependency_report.py` lists metadata such as DT_NEEDED library names without loading any dependency; it cannot handle SELF containers or make a commercial game portable. [V0.8.6 details](docs/V0.8.6-CR0-DEPENDENCIES.md).

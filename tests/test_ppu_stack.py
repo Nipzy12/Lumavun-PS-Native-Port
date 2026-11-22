@@ -62,6 +62,7 @@ class NestedPPUCallTests(unittest.TestCase):
             "PPU_STACK_RESTORED=1",
             "PPU_ELF_RELOCATED=1",
             "PPU_IMMEDIATE_CHAIN=1",
+            "PPU_CR0_BRANCHES=1",
         ])
 
     def test_stdu_rejects_invalid_base_register(self):
