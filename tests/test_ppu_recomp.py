@@ -33,7 +33,8 @@ class PPUStaticRecompilerTest(unittest.TestCase):
             self.assertEqual(process.returncode, 0, process.stderr)
             self.assertEqual(process.stdout.strip().splitlines(),
                              ['PPU_HOMEBREW_RESULT=15', 'PPU_GUEST_BE_BYTES=18,52',
-                              'PPU_STACK_RESTORED=1', 'PPU_ELF_RELOCATED=1', 'PPU_IMMEDIATE_CHAIN=1'])
+                              'PPU_STACK_RESTORED=1', 'PPU_ELF_RELOCATED=1', 'PPU_IMMEDIATE_CHAIN=1',
+                              'PPU_CR0_BRANCHES=1'])
 
     def test_rejects_unrecognized_opcode_without_output(self):
         data = bytearray(self.elf.read_bytes())
