@@ -69,6 +69,9 @@ set_tests_properties(native_ppu_elf_relative PROPERTIES
 add_test(NAME native_ppu_immediate_ops COMMAND LumavunPPUHomebrewPort)
 set_tests_properties(native_ppu_immediate_ops PROPERTIES
   PASS_REGULAR_EXPRESSION "PPU_IMMEDIATE_CHAIN=1")
+add_test(NAME native_ppu_cr0_branches COMMAND LumavunPPUHomebrewPort)
+set_tests_properties(native_ppu_cr0_branches PROPERTIES
+  PASS_REGULAR_EXPRESSION "PPU_CR0_BRANCHES=1")
 add_test(NAME ppu_recomp_python_tests
   COMMAND "${Python3_EXECUTABLE}" -m unittest discover
           -s "${CMAKE_CURRENT_SOURCE_DIR}/tests" -p "test_ppu_recomp.py" -v)
@@ -87,6 +90,9 @@ add_test(NAME ppu_v085_python_tests
 add_test(NAME ppu_cr0_python_tests
   COMMAND "${Python3_EXECUTABLE}" -m unittest discover
           -s "${CMAKE_CURRENT_SOURCE_DIR}/tests" -p "test_ppu_cr0.py" -v)
+add_test(NAME ppu_dependencies_python_tests
+  COMMAND "${Python3_EXECUTABLE}" -m unittest discover
+          -s "${CMAKE_CURRENT_SOURCE_DIR}/tests" -p "test_ppu_dependencies.py" -v)
 
 set(PS1_DEMO_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated")
 set(PS1_DEMO_INPUT "${PS1_DEMO_DIR}/PS1_MINIGAME.EXE")
