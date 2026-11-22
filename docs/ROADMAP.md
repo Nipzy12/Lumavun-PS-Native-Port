@@ -69,3 +69,7 @@ The original PPC64 demo now uses separate executable and data PT_LOAD mappings, 
 ## V0.8.5 region-aware guest memory and PPC immediates
 
 The original PowerPC64 homebrew exercises `addis/ori/xori` with a native C++ translation and a guest-memory load/store round-trip. The 64-KiB sandbox now enforces per-region boundaries for scratch, ELF writable PT_LOADs and homebrew stack. Dynamic ELF imports/symbol tables are refused rather than treated as resolved. This remains a limited homebrew prototype with no retail PS3 ELF compatibility, SPU/RSX/CellOS or Gundam Reborn gameplay. See [V0.8.5 technical notes](V0.8.5-PPU-MEMORY-OPS.md).
+
+## V0.8.6 native PPC64 CR0 branches and dependency metadata
+
+The limited original PPC64 ELF static compiler now handles 32-bit signed/unsigned CR0 comparisons and BO/BI LT/GT/EQ conditional branches. The resulting native Windows executable executes several taken branch paths to validate real machine-code translation. A separate bounded import inventory reads DT_NEEDED metadata without importing any shared libraries; unsupported dynamic imports still block recompilation. No game-specific PS3 compatibility, SPU, RSX, CellOS or playable Gundam Reborn. See [V0.8.6 technical notes](V0.8.6-CR0-DEPENDENCIES.md).
