@@ -27,6 +27,7 @@ jobs:
             build/Release/lumavun_ppu_scan.exe
             build/Release/LumavunPPUHomebrewPort.exe
             build/generated/PPU_HOMEBREW.ELF
+            tools/ppu_dependency_report.py
             build/generated/LumavunPPUHomebrewPort.cpp
             build/Release/LumavunPS1MiniPort.exe
             build/Release/LumavunPS1MiniPortGui.exe
