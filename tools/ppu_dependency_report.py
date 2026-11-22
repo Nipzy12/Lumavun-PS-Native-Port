@@ -100,8 +100,11 @@ def scan(path):
             raise DependencyError('Missing or oversized dynamic string table')
         mapping=None
         for va,filesz,offset in loads:
-            if str_va>=va and str_sz<=filesz-(str_va-va) if str_va>=va and str_va-va<=filesz else False:
-                mapping=offset+(str_va-va)
+            if str_va < va:
+                continue
+            delta=str_va-va
+            if delta<=filesz and str_sz<=filesz-delta:
+                mapping=offset+delta
                 break
         if mapping is None:
             raise DependencyError('Dynamic string table has no file-backed PT_LOAD')
